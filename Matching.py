@@ -1,30 +1,5 @@
 from collections import deque
 from My_Graph import Graph
-import numpy as np
-import pickle
-import gurobipy
-
-
-def write_graph(pathname):
-    """
-    :param pathname:
-        Pathname to tsp txt file. Row 0 -> num_nodes num_edges, row 1: num_edges -> node1 node2 weight
-    :return:
-        Graph object representing TSP instance
-    """
-    fp = open(pathname)
-    graph = Graph()
-    num_nodes, num_edges = map(int, fp.readline().split())
-    graph.add_nodes(num_nodes)
-
-    for i in range(num_edges):
-        v1, v2, weight = map(int, fp.readline().split())
-        node1 = graph.get_node(v1)
-        node2 = graph.get_node(v2)
-        graph.add_edge(node1, node2, weight)
-    fp.close()
-    graph.order_edges()
-    return graph
 
 
 def min_spanning_tree(graph):
@@ -259,67 +234,3 @@ def clean_matching(mate, valid):
             else:
                 matching.add((node2.num, node1.num))
     return matching
-
-
-def random_matching_test(n, num, denom, pickle_path=False):
-    """
-    :param n:
-        number of Nodes in test Graph
-    :param num:
-        numerator in num/denom = probability there exists an edge between any two distinct nodes
-    :param denom:
-        denominator in num/denom = probability there exists an edge between any two distinct nodes
-    :param pickle_path:
-        (optional) path to pickled random mat representing node adj. matrix
-    :return:
-        diff = difference of cardinality of maximal matching algorithm and cardinality of matching found by gurobi ILP
-        invalid = number edges in matching from algo not in graph
-    """
-    cutoff = denom - num
-    g1 = Graph()
-    model = gurobipy.Model()
-    model.setParam("OutputFlag", False)
-    g1.add_nodes(n)
-    g1.n = n
-    con_map = {i: set() for i in range(n)}
-    if pickle_path:
-        with open(pickle_path, 'rb') as f:
-            mat = pickle.load(f)
-    else:
-        mat = []
-
-    for i in range(n):
-        if not pickle_path:
-            new_row = np.random.randint(0, denom, i)
-            mat.append(new_row)
-        for j in range(i):
-            if mat[i][j] >= cutoff:
-                n1 = g1.get_node(i)
-                n2 = g1.get_node(j)
-                n1.val += 1
-                n2.val += 1
-                g1.add_edge(n1, n2, 0)
-                g1.m += 1
-                new_var = model.addVar(obj=-1, vtype=gurobipy.GRB.BINARY, name="({},{})".format(i, j))
-                model.update()
-                con_map[i].add(new_var)
-                con_map[j].add(new_var)
-
-    for nd, const in con_map.items():
-        model.addConstr(gurobipy.quicksum(const) <= 1)
-    model.update()
-
-    mate, b = maximal_matching(g1)
-    flower(g1, mate, b)
-    matching = clean_matching(mate, lambda node: node is not None)
-    count1 = len(matching)
-    matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
-    count2 = len(matching)
-    invalid = count1 - count2
-    model.optimize()
-    grb_match = [v.VarName for v in model.getVars() if v.x != 0]
-    diff = len(matching) - len(grb_match)
-    if diff != 0 or invalid != 0:
-        with open('problem_mat.pkl', 'wb') as f:
-            pickle.dump(mat, f)
-    return diff, invalid

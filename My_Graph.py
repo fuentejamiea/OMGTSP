@@ -86,3 +86,25 @@ class Graph:
 
     def order_edges(self):
         self.edges.sort(key=lambda e: e.weight)
+
+
+def write_graph(pathname):
+    """
+    :param pathname:
+        Pathname to tsp txt file. Row 0 -> num_nodes num_edges, row 1: num_edges -> node1 node2 weight
+    :return:
+        Graph object representing TSP instance
+    """
+    fp = open(pathname)
+    graph = Graph()
+    num_nodes, num_edges = map(int, fp.readline().split())
+    graph.add_nodes(num_nodes)
+
+    for i in range(num_edges):
+        v1, v2, weight = map(int, fp.readline().split())
+        node1 = graph.get_node(v1)
+        node2 = graph.get_node(v2)
+        graph.add_edge(node1, node2, weight)
+    fp.close()
+    graph.order_edges()
+    return graph
