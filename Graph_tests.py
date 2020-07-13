@@ -20,6 +20,13 @@ def random_matching_test(n, num, denom, pickle_path=False):
         diff = difference of cardinality of maximal matching algorithm and cardinality of matching found by gurobi ILP
         invalid = number edges in matching from algo not in graph
     """
+    if pickle_path:
+        with open(pickle_path, 'rb') as f:
+            mat = pickle.load(f)
+            n = len(mat)
+    else:
+        mat = []
+
     cutoff = denom - num
     g1 = Graph()
     model = gurobipy.Model()
@@ -27,11 +34,7 @@ def random_matching_test(n, num, denom, pickle_path=False):
     g1.add_nodes(n)
     g1.n = n
     con_map = {i: set() for i in range(n)}
-    if pickle_path:
-        with open(pickle_path, 'rb') as f:
-            mat = pickle.load(f)
-    else:
-        mat = []
+
 
     for i in range(n):
         if not pickle_path:
@@ -54,7 +57,7 @@ def random_matching_test(n, num, denom, pickle_path=False):
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
 
-    mate, b = maximal_matching(g1)
+    mate, b, outer = maximal_matching(g1)
     flower(g1, mate, b)
     matching = clean_matching(mate, lambda node: node is not None)
     count1 = len(matching)
@@ -64,8 +67,10 @@ def random_matching_test(n, num, denom, pickle_path=False):
     model.optimize()
     grb_match = [v.VarName for v in model.getVars() if v.x != 0]
     diff = len(matching) - len(grb_match)
-    if diff != 0 or invalid != 0:
-        with open('problem_mat.pkl', 'wb') as f:
+    if (diff != 0 or invalid != 0) and not pickle_path:
+        print(matching)
+        print(grb_match)
+        with open('{}_{}_{}_problem_mat.pkl'.format(n,num,denom), 'wb') as f:
             pickle.dump(mat, f)
     return diff, invalid
 
@@ -103,7 +108,7 @@ class MatchingMethods(unittest.TestCase):
 
     def test_aps(self):
         graph = write_graph("TSP/Matching_test1.txt")
-        mate, b_list = maximal_matching(graph)
+        mate, b_list,outer = maximal_matching(graph)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(len(matching), 6)
 
@@ -115,7 +120,7 @@ class MatchingMethods(unittest.TestCase):
                 mate[edge.to_node] = edge.from_node
                 mate[edge.from_node] = edge.to_node
 
-        mate, b_list = maximal_matching(graph, mate)
+        mate, b_list, outer = maximal_matching(graph, mate)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(matching, {(18, 15), (14, 13), (12, 11), (17, 16)})
 
@@ -123,6 +128,7 @@ class MatchingMethods(unittest.TestCase):
         for n in [10, 15, 25, 50, 100]:
             for num in [1, 3, 7]:
                 self.assertEqual(random_matching_test(n, num, 10), (0, 0))
+
 
 
 if __name__ == '__main__':

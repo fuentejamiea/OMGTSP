@@ -1,5 +1,5 @@
 from collections import deque
-from My_Graph import Graph
+import My_Graph
 
 
 def min_spanning_tree(graph):
@@ -73,21 +73,25 @@ def blossom(graph, node1, node2, parent):
     cycle = set(b)
     b_node = graph.add_nodes(1)[0]
     parent[b_node] = parent[b[-1]]
-    b_neighbors = set()
+    b_neighbors = {}
 
     for node1 in b:
-        node1.alive = False
+        node1.set_super(b_node)
         for edge in node1.edges:
             if edge.is_alive():
-                edge.alive = False
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
                 if node2 not in cycle:
-                    b_neighbors.add(node2)
+                    if node2 not in b_neighbors:
+                        new_edge = graph.add_edge(b_node, node2, 0)
+                        b_neighbors[node2] = new_edge
+                        edge.set_super(new_edge)
+                        if node2 in parent and parent[node2] in cycle:
+                            parent[node2] = b_node
+                    else:
+                        edge.set_super(b_neighbors[node2])
 
-    for neighbor in b_neighbors:
-        graph.add_edge(b_node, neighbor, 0)
-        if neighbor in parent and parent[neighbor] in cycle:
-            parent[neighbor] = b_node
+                else:
+                    edge.set_super(b_node)
 
     return b_node, b
 
@@ -110,11 +114,10 @@ def aps(graph, mate, b_list, root):
 
     """
     visited = set()
-    basis = {root}
+    outer = {root}
     parent = {root: None}
     q = deque([root])
-    cont = True
-    while cont and q:
+    while q:
         node1 = q.popleft()
         if not node1.is_alive() or node1 in visited:
             continue
@@ -129,24 +132,25 @@ def aps(graph, mate, b_list, root):
                         mate[node2] = parent[node2]
                         mate[parent[node2]] = node2
                         node2 = parent[parent[node2]]
-                    cont = False
-                    break
+                    return None
 
                 elif node2 not in parent:
                     parent[node2] = node1
                     parent[mate[node2]] = node2
-                    basis.add(mate[node2])
+                    outer.add(mate[node2])
                     q.append(mate[node2])
 
-                elif node2 in basis:
+                elif node2 in outer:
                     # blossom detected
                     b_node, cycle = blossom(graph, node1, node2, parent)
-                    basis.add(b_node)
+                    outer.add(b_node)
+                    outer.update(cycle)
                     if cycle[-1] in mate:
                         mate[b_node] = mate[cycle[-1]]
                         mate[mate[cycle[-1]]] = b_node
                     b_list.append((b_node, cycle))
                     q.appendleft(b_node)
+    return outer
 
 
 def maximal_matching(graph, mate=None):
@@ -163,13 +167,16 @@ def maximal_matching(graph, mate=None):
     """
     if mate is None:
         mate = {}
+    outer = set()
     b_list = []
     for root in graph.nodes:
         if root.is_alive() and root not in mate:
             # start augmenting path search (BFS format)
-            aps(graph, mate, b_list, root)
+            o = aps(graph, mate, b_list, root)
+            if o is not None:
+                outer.update(o)
 
-    return mate, b_list
+    return mate, b_list, outer
 
 
 def flower(graph, mate, b_list):
@@ -210,11 +217,11 @@ def flower(graph, mate, b_list):
     graph.nodes = graph.nodes[:graph.n]
     for node in graph.nodes:
         node.edges = node.edges[:node.val]
-        node.alive = True
+        node.set_super(node)
 
     graph.edges = graph.edges[:graph.m]
     for edge in graph.edges:
-        edge.alive = True
+        edge.set_super(edge)
 
 
 def clean_matching(mate, valid):
@@ -234,3 +241,111 @@ def clean_matching(mate, valid):
             else:
                 matching.add((node2.num, node1.num))
     return matching
+
+def weighted_matching(graph):
+
+    b_list = []
+    n = graph.n
+    m = graph.m
+    for node in graph.get_nodes():
+        min_edge = min(node.edges, key=lambda e: e.weight)
+        node.val = .5 * min_edge.weight
+
+    for i in range(5):
+        for edge in graph.edges[:m]:
+            n1 = edge.to_node
+            n2 = edge.from_node
+            if n1.val + n2.val == edge.weight:
+                edge.set_super(edge)
+            else:
+                edge.set_super(None)
+
+        print([node.val for node in graph.get_nodes()])
+        print([edge for edge in graph.get_edges() if edge.is_alive()])
+        mate, b_update, outer = maximal_matching(graph)
+
+        if b_update:
+            b_list += b_update
+
+        for b_info in b_list:
+            if b_info[0] in outer:
+                # add nodes in outer pseudonode to outer
+                outer.update(b_info[1])
+
+        inner = set()
+        for node in outer:
+            if node in mate and mate[node] not in outer:
+                inner.add(mate[node])
+        print(outer)
+        print(inner)
+
+        delta1 = delta2 = delta3 = float('inf')
+        for e in graph.edges[:m]:
+            if not isinstance(e.super, My_Graph.Node):
+                n1 = e.to_node
+                n2 = e.from_node
+                n1_out = n1 in outer
+                n1_in = n1 in inner
+                n2_out = n2 in outer
+                n2_in = n2 in inner
+                if n1_out and n2_out:
+                    #print("delta1 update")
+                    #print(n1,n2, (e.weight - n1.val - n2.val)/2)
+                    delta1 = min(delta1, (e.weight - n1.val - n2.val)/2)
+                elif (n1_out and not (n2_in or n2_out)) or (n2_out and not (n1_in or n1_out)):
+                    #print("delta2 update")
+                    #print(n1, n2, e.weight - n1.val - n2.val)
+                    delta2 = min(delta2, e.weight - n1.val - n2.val)
+
+        for pseudo in graph.nodes[n:]:
+            if pseudo in inner:
+                delta3 = min(-pseudo.val/2)
+
+        print(delta1,delta2,delta3)
+        delta = min(delta1, delta2, delta3)
+        for node in inner:
+            if node.num < n:
+                node.val -= delta
+            else:
+                node.val += 2*delta
+
+        for node in outer:
+            if node.num < n:
+                node.val += delta
+            else:
+                node.val -= 2*delta
+
+        print("##########################################")
+
+
+
+
+
+
+
+
+def christofides(g):
+    g = My_Graph.write_graph("TSP/ulysses22.txt")
+    tree = min_spanning_tree(g)
+    count = [False] * len(g.nodes)
+    for e in tree:
+        count[e.from_node.num] = not count[e.from_node.num]
+        count[e.to_node.num] = not count[e.to_node.num]
+
+    odd_nodes = {i for i in range(len(count)) if count[i]}
+    weight_dict = {node: {} for node in odd_nodes}
+    for i in odd_nodes:
+        for j in odd_nodes:
+            if j != i:
+                e = g.get_edge(g.nodes[i], g.nodes[j])
+                if e is not None:
+                    weight_dict[i][j] = e.weight
+                    weight_dict[j][i] = e.weight
+                else:
+                    weight_dict[i][j] = g.edges[-1].weight + 1
+                    weight_dict[j][i] = g.edges[-1].weight + 1
+
+    return weight_dict
+
+#wm = My_Graph.write_graph("TSP/weighted_matching.txt")
+#weighted_matching(wm)

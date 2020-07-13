@@ -1,18 +1,22 @@
 class Node:
     def __init__(self, num):
+        self.super = self
         self.num = num
         self.val = 0
         self.edges = []
-        self.alive = True
 
     def is_alive(self):
-        return self.alive
+        return self.super == self
+
+    def set_super(self,n_super):
+        self.super = n_super
 
     def get_edges(self):
         return self.edges
 
     def __str__(self):
-        return str("N({})".format(str(self.num)))
+        # TODO: CHANGE THIS!
+        return str("N({})".format(str(self.num + 1)))
 
     def __repr__(self):
         return str(self)
@@ -20,16 +24,20 @@ class Node:
 
 class Edge:
     def __init__(self, from_node, to_node, weight):
+        self.super = self
         self.from_node = from_node
         self.to_node = to_node
         self.weight = weight
-        self.alive = True
 
     def is_alive(self):
-        return self.alive
+        return self.super == self
+
+    def set_super(self,n_super):
+        self.super = n_super
 
     def __str__(self):
-        return "({}-({})-{})".format(self.from_node.num, str(self.weight), self.to_node.num)
+        # TODO: CHANGE THIS!
+        return "({}-({})-{})".format(self.from_node.num + 1, str(self.weight), self.to_node.num + 1)
 
     def __repr__(self):
         return str(self)
@@ -39,6 +47,7 @@ class Graph:
     def __init__(self):
         self.nodes = []
         self.edges = []
+        self.e_map = {}
         self.n = 0
         self.m = 0
 
@@ -97,10 +106,10 @@ def write_graph(pathname):
     """
     fp = open(pathname)
     graph = Graph()
-    num_nodes, num_edges = map(int, fp.readline().split())
-    graph.add_nodes(num_nodes)
+    graph.n, graph.m = map(int, fp.readline().split())
+    graph.add_nodes(graph.n)
 
-    for i in range(num_edges):
+    for i in range(graph.m):
         v1, v2, weight = map(int, fp.readline().split())
         node1 = graph.get_node(v1)
         node2 = graph.get_node(v2)
