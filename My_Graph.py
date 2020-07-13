@@ -1,9 +1,9 @@
 class Node:
     def __init__(self, num):
+        self.edges = set()
         self.super = self
         self.num = num
         self.val = 0
-        self.edges = []
 
     def is_alive(self):
         return self.super == self
@@ -14,6 +14,16 @@ class Node:
     def get_edges(self):
         return self.edges
 
+    def dump_edges(self, to_dump):
+        self.edges.difference_update(to_dump)
+
+    def get_neighbors(self):
+        neighbors = set()
+        for edge in self.edges:
+            ngh = edge.from_node if self is edge.to_node else edge.to_node
+            neighbors.add(ngh)
+        return neighbors
+
     def __str__(self):
         # TODO: CHANGE THIS!
         return str("N({})".format(str(self.num + 1)))
@@ -22,18 +32,42 @@ class Node:
         return str(self)
 
 
+class Blossom(Node):
+    def __init__(self, num, cycle):
+        super(Blossom, self).__init__(num)
+        self.cycle = cycle
+
+    def flower(self, exposed_dex, mate):
+        if exposed_dex != 0:
+            half1 = self.cycle[:exposed_dex]
+            half2 = self.cycle[exposed_dex:]
+            self.cycle = half2 + half1
+
+        for i in range(1, len(self.cycle), 2):
+            mate[self.cycle[i]] = self.cycle[i + 1]
+            mate[self.cycle[i + 1]] = self.cycle[i]
+
+        for ngh in self.get_neighbors():
+            ngh.dump_edges(self.edges)
+
+
+
+
 class Edge:
     def __init__(self, from_node, to_node, weight):
-        self.super = self
         self.from_node = from_node
         self.to_node = to_node
         self.weight = weight
+        self.super = self
 
     def is_alive(self):
         return self.super == self
 
-    def set_super(self,n_super):
+    def set_super(self, n_super):
         self.super = n_super
+
+    def wake(self):
+        self.super = self
 
     def __str__(self):
         # TODO: CHANGE THIS!
@@ -47,54 +81,34 @@ class Graph:
     def __init__(self):
         self.nodes = []
         self.edges = []
-        self.e_map = {}
         self.n = 0
         self.m = 0
 
     def add_nodes(self, m):
         n = len(self.nodes)
         new_nodes = [Node(i) for i in range(n, n+m)]
-        if n == 0:
-            self.nodes = new_nodes
-        else:
-            self.nodes += new_nodes
+        self.nodes += new_nodes
         return new_nodes
 
-    def get_node(self, node_num):
-        n = len(self.nodes)
-        if node_num >= n:
-            print("only {} nodes in graph".format(n))
-            return None
+    def get_node(self, num):
+        return self.nodes[num]
 
-        return self.nodes[node_num]
-
-    def get_nodes(self):
-        return self.nodes
-
-    def add_edge(self, from_node, to_node, weight):
-        if not isinstance(from_node, Node):
-            to_node = self.get_node(to_node)
-
-        if not isinstance(to_node, Node):
-            from_node = self.get_node(from_node)
-
+    def add_edge(self, from_node, to_node, weight, update=True):
         new_edge = Edge(from_node, to_node, weight)
-        from_node.edges.append(new_edge)
-        to_node.edges.append(new_edge)
-        self.edges.append(new_edge)
+        from_node.edges.add(new_edge)
+        to_node.edges.add(new_edge)
+        if update:
+            # dont want to save dummy edges
+            self.edges.append(new_edge)
         return new_edge
 
     def get_edge(self, from_node, to_node):
-        for edge in from_node.edges:
-            if to_node is edge.from_node or to_node is edge.to_node:
-                return edge
-        return None
+        return from_node.edges.intersection(to_node.edges)
 
     def get_edges(self):
         return self.edges
 
-    def order_edges(self):
-        self.edges.sort(key=lambda e: e.weight)
+
 
 
 def write_graph(pathname):
@@ -107,13 +121,10 @@ def write_graph(pathname):
     fp = open(pathname)
     graph = Graph()
     graph.n, graph.m = map(int, fp.readline().split())
-    graph.add_nodes(graph.n)
+    node_list = graph.add_nodes(graph.n)
 
     for i in range(graph.m):
-        v1, v2, weight = map(int, fp.readline().split())
-        node1 = graph.get_node(v1)
-        node2 = graph.get_node(v2)
-        graph.add_edge(node1, node2, weight)
+        n1, n2, weight = map(int, fp.readline().split())
+        graph.add_edge(node_list[n1], node_list[n2], weight)
     fp.close()
-    graph.order_edges()
     return graph

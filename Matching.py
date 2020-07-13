@@ -78,11 +78,13 @@ def blossom(graph, node1, node2, parent):
     for node1 in b:
         node1.set_super(b_node)
         for edge in node1.edges:
-            if edge.is_alive():
+            if edge.is_alive() or edge.super is None:
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
                 if node2 not in cycle:
                     if node2 not in b_neighbors:
                         new_edge = graph.add_edge(b_node, node2, 0)
+                        if edge.super is None:
+                            new_edge.set_super(None)
                         b_neighbors[node2] = new_edge
                         edge.set_super(new_edge)
                         if node2 in parent and parent[node2] in cycle:
@@ -245,19 +247,24 @@ def clean_matching(mate, valid):
 def weighted_matching(graph):
 
     b_list = []
+    b_map = {}
     n = graph.n
     m = graph.m
     for node in graph.get_nodes():
         min_edge = min(node.edges, key=lambda e: e.weight)
         node.val = .5 * min_edge.weight
 
-    for i in range(5):
+    for i in range(7):
         for edge in graph.edges[:m]:
             n1 = edge.to_node
             n2 = edge.from_node
             if n1.val + n2.val == edge.weight:
-                edge.set_super(edge)
-            else:
+                print(edge, edge.super)
+                if edge.super is None:
+                    edge.wake()
+                elif isinstance(edge.super,My_Graph.Edge):
+                    edge.super.wake()
+            elif edge.is_alive():
                 edge.set_super(None)
 
         print([node.val for node in graph.get_nodes()])
@@ -265,6 +272,8 @@ def weighted_matching(graph):
         mate, b_update, outer = maximal_matching(graph)
 
         if b_update:
+            for b_info in b_update:
+                b_map[b_info[0]] = b_info[1]
             b_list += b_update
 
         for b_info in b_list:
@@ -276,6 +285,10 @@ def weighted_matching(graph):
         for node in outer:
             if node in mate and mate[node] not in outer:
                 inner.add(mate[node])
+                if mate[node].num >= n:
+                    inner.update(b_map[mate[node]])
+
+        print(mate)
         print(outer)
         print(inner)
 
@@ -289,6 +302,7 @@ def weighted_matching(graph):
                 n2_out = n2 in outer
                 n2_in = n2 in inner
                 if n1_out and n2_out:
+                    #print(e, e.super)
                     #print("delta1 update")
                     #print(n1,n2, (e.weight - n1.val - n2.val)/2)
                     delta1 = min(delta1, (e.weight - n1.val - n2.val)/2)
@@ -299,7 +313,7 @@ def weighted_matching(graph):
 
         for pseudo in graph.nodes[n:]:
             if pseudo in inner:
-                delta3 = min(-pseudo.val/2)
+                delta3 = min(delta3,-pseudo.val/2)
 
         print(delta1,delta2,delta3)
         delta = min(delta1, delta2, delta3)
@@ -347,5 +361,5 @@ def christofides(g):
 
     return weight_dict
 
-#wm = My_Graph.write_graph("TSP/weighted_matching.txt")
-#weighted_matching(wm)
+wm = My_Graph.write_graph("TSP/weighted_matching.txt")
+weighted_matching(wm)
