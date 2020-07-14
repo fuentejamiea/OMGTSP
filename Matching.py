@@ -25,7 +25,7 @@ def min_spanning_tree(graph):
     return tree
 
 
-def blossom(graph, node1, node2, parent):
+def shrink_blossom(graph, node1, node2, parent, mate):
     """
     :param graph:
         Graph object from My_Graph Module
@@ -69,36 +69,11 @@ def blossom(graph, node1, node2, parent):
         start2 = parent[start2]
 
     b2.reverse()
-    b = b2 + b1
-    cycle = set(b)
-    b_node = graph.add_nodes(1)[0]
-    parent[b_node] = parent[b[-1]]
-    b_neighbors = {}
-
-    for node1 in b:
-        node1.set_super(b_node)
-        for edge in node1.edges:
-            if edge.is_alive() or edge.super is None:
-                node2 = edge.from_node if node1 is edge.to_node else edge.to_node
-                if node2 not in cycle:
-                    if node2 not in b_neighbors:
-                        new_edge = graph.add_edge(b_node, node2, 0)
-                        if edge.super is None:
-                            new_edge.set_super(None)
-                        b_neighbors[node2] = new_edge
-                        edge.set_super(new_edge)
-                        if node2 in parent and parent[node2] in cycle:
-                            parent[node2] = b_node
-                    else:
-                        edge.set_super(b_neighbors[node2])
-
-                else:
-                    edge.set_super(b_node)
-
-    return b_node, b
+    return graph.add_blossom(b2 + b1)
 
 
-def aps(graph, mate, b_list, root):
+
+def aps(graph, mate, root):
     """
     :param graph:
         Graph object from My_Graph module
@@ -124,7 +99,7 @@ def aps(graph, mate, b_list, root):
         if not node1.is_alive() or node1 in visited:
             continue
         visited.add(node1)
-        for edge in node1.edges:
+        for edge in node1.get_edges():
             if edge.is_alive():
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
                 if node2 not in mate and node2 not in parent:
@@ -134,24 +109,25 @@ def aps(graph, mate, b_list, root):
                         mate[node2] = parent[node2]
                         mate[parent[node2]] = node2
                         node2 = parent[parent[node2]]
-                    return None
+                    return []
 
                 elif node2 not in parent:
                     parent[node2] = node1
-                    parent[mate[node2]] = node2
-                    outer.add(mate[node2])
+                    partner = mate[node2]
+                    parent[partner] = node2
+                    outer.add(partner)
+                    if partner.is_blossom():
+                        outer.update(partner.cycle)
                     q.append(mate[node2])
 
                 elif node2 in outer:
                     # blossom detected
-                    b_node, cycle = blossom(graph, node1, node2, parent)
+                    b_node = shrink_blossom(graph, node1, node2, parent, mate)
                     outer.add(b_node)
-                    outer.update(cycle)
-                    if cycle[-1] in mate:
-                        mate[b_node] = mate[cycle[-1]]
-                        mate[mate[cycle[-1]]] = b_node
-                    b_list.append((b_node, cycle))
-                    q.appendleft(b_node)
+                    outer.update(b_node.cycle)
+                    q.append(b_node)
+                    if not node1.is_alive():
+                        break
     return outer
 
 
@@ -170,15 +146,13 @@ def maximal_matching(graph, mate=None):
     if mate is None:
         mate = {}
     outer = set()
-    b_list = []
     for root in graph.nodes:
         if root.is_alive() and root not in mate:
             # start augmenting path search (BFS format)
-            o = aps(graph, mate, b_list, root)
-            if o is not None:
-                outer.update(o)
+            o = aps(graph, mate, root)
+            outer.update(o)
 
-    return mate, b_list, outer
+    return mate, outer
 
 
 def flower(graph, mate, b_list):
@@ -216,14 +190,6 @@ def flower(graph, mate, b_list):
             mate[cycle[k]] = cycle[k + 1]
             mate[cycle[k + 1]] = cycle[k]
 
-    graph.nodes = graph.nodes[:graph.n]
-    for node in graph.nodes:
-        node.edges = node.edges[:node.val]
-        node.set_super(node)
-
-    graph.edges = graph.edges[:graph.m]
-    for edge in graph.edges:
-        edge.set_super(edge)
 
 
 def clean_matching(mate, valid):
@@ -246,16 +212,12 @@ def clean_matching(mate, valid):
 
 def weighted_matching(graph):
 
-    b_list = []
-    b_map = {}
-    n = graph.n
-    m = graph.m
     for node in graph.get_nodes():
         min_edge = min(node.edges, key=lambda e: e.weight)
         node.val = .5 * min_edge.weight
 
     for i in range(7):
-        for edge in graph.edges[:m]:
+        for edge in graph.edges:
             n1 = edge.to_node
             n2 = edge.from_node
             if n1.val + n2.val == edge.weight:
@@ -269,24 +231,17 @@ def weighted_matching(graph):
 
         print([node.val for node in graph.get_nodes()])
         print([edge for edge in graph.get_edges() if edge.is_alive()])
-        mate, b_update, outer = maximal_matching(graph)
-
-        if b_update:
-            for b_info in b_update:
-                b_map[b_info[0]] = b_info[1]
-            b_list += b_update
-
-        for b_info in b_list:
-            if b_info[0] in outer:
-                # add nodes in outer pseudonode to outer
-                outer.update(b_info[1])
+        mate, outer = maximal_matching(graph)
 
         inner = set()
-        for node in outer:
+        for node in list(outer):
+            if node.is_blossom():
+                pass
+
             if node in mate and mate[node] not in outer:
                 inner.add(mate[node])
-                if mate[node].num >= n:
-                    inner.update(b_map[mate[node]])
+                if mate[node].is_blossom():
+                    inner.update(mate[node].cycle)
 
         print(mate)
         print(outer)
@@ -361,5 +316,5 @@ def christofides(g):
 
     return weight_dict
 
-wm = My_Graph.write_graph("TSP/weighted_matching.txt")
-weighted_matching(wm)
+#wm = My_Graph.write_graph("TSP/weighted_matching.txt")
+#weighted_matching(wm)

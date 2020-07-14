@@ -100,15 +100,13 @@ class GraphMethods(unittest.TestCase):
         self.assertIs(alexis, friends.get_node(0))
         self.assertEqual(friends.get_node(4), None)
         self.assertEqual(friends.edges, [ship1, ship3, ship2])
-        friends.order_edges()
-        self.assertEqual(friends.edges, [ship1, ship2, ship3])
 
 
 class MatchingMethods(unittest.TestCase):
 
     def test_aps(self):
         graph = write_graph("TSP/Matching_test1.txt")
-        mate, b_list,outer = maximal_matching(graph)
+        mate ,outer = maximal_matching(graph)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(len(matching), 6)
 
