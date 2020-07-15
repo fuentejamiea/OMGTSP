@@ -32,11 +32,11 @@ class Node:
         return neighbors
 
     def __str__(self):
+        # TODO: CHANGE THIS!
         return "N({})".format(str(self.num))
 
     def __repr__(self):
-        # TODO: CHANGE THIS!
-        return "N({})".format(str(self.num + 1))
+        return str(self)
 
 
 class Blossom(Node):
@@ -46,6 +46,14 @@ class Blossom(Node):
 
     def is_blossom(self):
         return True
+
+    def find_neighbor(self, node):
+        for i in range(len(self.cycle)):
+            candidate = self.cycle[i]
+            e = candidate.edges.intersection(node.edges)
+            if e:
+                return i, e.pop()
+        return None
 
     def __str__(self):
         return "B({})".format(str(self.num))
@@ -71,11 +79,10 @@ class Edge:
         self.alive = True
 
     def __str__(self):
-        return "({}-({})-{})".format(self.from_node.num, str(self.weight), self.to_node.num)
+        return "({}-({})-{})".format(str(self.from_node), str(self.weight), str(self.to_node))
 
     def __repr__(self):
-        # TODO: CHANGE THIS!
-        return "({}-({})-{})".format(self.from_node.num + 1, str(self.weight), self.to_node.num + 1)
+        return str(self)
 
 
 class Graph:
@@ -102,7 +109,7 @@ class Graph:
         n = len(self.nodes)
         new_blossom = Blossom(n, cycle)
         self.nodes.append(new_blossom)
-        b_neighbors = {}
+        neighbors = set()
         for node in cycle:
             node.kill()
             self.nodes[node.num] = new_blossom
@@ -111,10 +118,11 @@ class Graph:
             for edge in node1.edges:
                 edge.kill()
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
-                if node2.is_alive() and node2 not in b_neighbors:
+                if node2.is_alive() and node2 not in neighbors:
                     self.add_edge(new_blossom, node2, -1, False)
+                    neighbors.add(node2)
 
-        return new_blossom, b_neighbors
+        return new_blossom, neighbors
 
     def flower(self, blossom, stem_dex):
         for edge in blossom.edges:
@@ -137,6 +145,12 @@ class Graph:
         else:
             return blossom.cycle
 
+    def get_neighborhood(self, node):
+        index = node.num
+        while self.nodes[index].num != index:
+            index = self.nodes[index].num
+        return self.nodes[index]
+
     def get_node(self, num):
         if num < len(self.nodes):
             return self.nodes[num]
@@ -148,8 +162,6 @@ class Graph:
 
     def get_edges(self):
         return self.edges
-
-
 
 
 def write_graph(pathname):

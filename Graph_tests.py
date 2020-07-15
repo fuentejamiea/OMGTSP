@@ -32,7 +32,6 @@ def random_matching_test(n, num, denom, pickle_path=False):
     model = gurobipy.Model()
     model.setParam("OutputFlag", False)
     g1.add_nodes(n)
-    g1.n = n
     con_map = {i: set() for i in range(n)}
 
 
@@ -47,7 +46,6 @@ def random_matching_test(n, num, denom, pickle_path=False):
                 n1.val += 1
                 n2.val += 1
                 g1.add_edge(n1, n2, 0)
-                g1.m += 1
                 new_var = model.addVar(obj=-1, vtype=gurobipy.GRB.BINARY, name="({},{})".format(i, j))
                 model.update()
                 con_map[i].add(new_var)
@@ -57,8 +55,8 @@ def random_matching_test(n, num, denom, pickle_path=False):
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
 
-    mate, b, outer = maximal_matching(g1)
-    flower(g1, mate, b)
+    mate, _ = maximal_matching(g1)
+    expand(g1, mate)
     matching = clean_matching(mate, lambda node: node is not None)
     count1 = len(matching)
     matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
@@ -105,20 +103,20 @@ class GraphMethods(unittest.TestCase):
 class MatchingMethods(unittest.TestCase):
 
     def test_aps(self):
-        graph = write_graph("TSP/Matching_test1.txt")
-        mate ,outer = maximal_matching(graph)
+        graph = write_graph("Tests/Matching_test1.txt")
+        mate,outer = maximal_matching(graph)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(len(matching), 6)
 
     def test_blossom(self):
-        graph = write_graph("TSP/blossom_test1.txt")
+        graph = write_graph("Tests/blossom_test1.txt")
         mate = {}
         for edge in graph.edges:
             if edge.weight == 1:
                 mate[edge.to_node] = edge.from_node
                 mate[edge.from_node] = edge.to_node
 
-        mate, b_list, outer = maximal_matching(graph, mate)
+        mate, outer = maximal_matching(graph, mate)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(matching, {(18, 15), (14, 13), (12, 11), (17, 16)})
 

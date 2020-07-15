@@ -25,7 +25,7 @@ def min_spanning_tree(graph):
     return tree
 
 
-def shrink_blossom(graph, node1, node2, parent, mate):
+def shrink_blossom(graph, node1, node2, parent):
     """
     :param graph:
         Graph object from My_Graph Module
@@ -68,8 +68,17 @@ def shrink_blossom(graph, node1, node2, parent, mate):
         b2.append(start2)
         start2 = parent[start2]
 
-    b2.reverse()
-    return graph.add_blossom(b2 + b1)
+    b1.reverse()
+    cycle = b1 + b2
+    b_node, neighbors = graph.add_blossom(cycle)
+    cycle = set(cycle)
+
+    for node in neighbors:
+        if node in parent and parent[node] in cycle:
+            parent[node] = b_node
+
+    parent[b_node] = parent[stem]
+    return b_node
 
 
 
@@ -109,7 +118,7 @@ def aps(graph, mate, root):
                         mate[node2] = parent[node2]
                         mate[parent[node2]] = node2
                         node2 = parent[parent[node2]]
-                    return []
+                    return None
 
                 elif node2 not in parent:
                     parent[node2] = node1
@@ -122,10 +131,13 @@ def aps(graph, mate, root):
 
                 elif node2 in outer:
                     # blossom detected
-                    b_node = shrink_blossom(graph, node1, node2, parent, mate)
+                    b_node = shrink_blossom(graph, node1, node2, parent)
                     outer.add(b_node)
                     outer.update(b_node.cycle)
                     q.append(b_node)
+                    if b_node.cycle[0] in mate:
+                        mate[b_node] = mate[b_node.cycle[0]]
+                        mate[b_node.cycle[0]] = b_node
                     if not node1.is_alive():
                         break
     return outer
@@ -150,12 +162,12 @@ def maximal_matching(graph, mate=None):
         if root.is_alive() and root not in mate:
             # start augmenting path search (BFS format)
             o = aps(graph, mate, root)
-            outer.update(o)
+            if o:
+                outer.update(o)
 
     return mate, outer
 
-
-def flower(graph, mate, b_list):
+def expand(graph, mate):
     """
     :param graph:
         My_Graph Graph object after maximal matching has been called
@@ -163,32 +175,27 @@ def flower(graph, mate, b_list):
     :param mate:
         Matching return from maximal matching on Graph
         *mutates* expands blossoms to result in valid matching on original graph. b_nodes will be unmatched
-    :param b_list:
-        List of (b_node, blossom) pairs where blossom is a list of nodes in blossom
     :return:
         None
     """
-    for i in range(len(b_list) - 1, -1, -1):
-        b_node, cycle = b_list[i]
+    b_node = graph.nodes[-1]
+    while b_node.is_blossom():
+        i = 0
         if b_node in mate and mate[b_node] is not None:
             b_mate = mate[b_node]
-            for j in range(len(cycle)):
-                e = graph.get_edge(b_mate, cycle[j])
-                if e is not None and not e.is_alive():
-                    half1 = cycle[:j]
-                    half2 = cycle[j:]
-                    cycle = half2 + half1
-                    mate[b_mate] = cycle[0]
-                    mate[cycle[0]] = b_mate
-                    break
+            i, _ = b_node.find_neighbor(b_mate)
+            mate[b_mate] = b_node.cycle[i]
+            mate.pop(b_node)
         else:
-            mate[cycle[0]] = None
+            b_mate = None
 
-        mate[b_node] = None
-        cycle[0].alive = True
+        cycle = graph.flower(b_node, i)
+        mate[cycle[0]] = b_mate
         for k in range(1, len(cycle), 2):
             mate[cycle[k]] = cycle[k + 1]
             mate[cycle[k + 1]] = cycle[k]
+
+        b_node = graph.nodes[-1]
 
 
 
@@ -287,12 +294,6 @@ def weighted_matching(graph):
         print("##########################################")
 
 
-
-
-
-
-
-
 def christofides(g):
     g = My_Graph.write_graph("TSP/ulysses22.txt")
     tree = min_spanning_tree(g)
@@ -318,3 +319,16 @@ def christofides(g):
 
 #wm = My_Graph.write_graph("TSP/weighted_matching.txt")
 #weighted_matching(wm)
+
+
+graph = My_Graph.write_graph("Tests/sub_blossom_test.txt")
+nodes = list(graph.nodes)
+mate = {}
+for edge in graph.edges:
+    if edge.weight == 1:
+        mate[edge.to_node] = edge.from_node
+        mate[edge.from_node] = edge.to_node
+
+mate, outer = maximal_matching(graph, mate)
+
+
