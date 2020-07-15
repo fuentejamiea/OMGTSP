@@ -157,12 +157,13 @@ def maximal_matching(graph, mate=None):
     if mate is None:
         mate = {}
     outer = set()
-    for root in graph.nodes:
+    for root in graph.get_nodes():
         if root.is_alive() and root not in mate:
             # start augmenting path search (BFS format)
             o = aps(graph, mate, root)
             if o:
                 outer.update(o)
+        expand(graph, mate)
 
     return mate, outer
 

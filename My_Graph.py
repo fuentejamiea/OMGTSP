@@ -133,7 +133,7 @@ class Graph:
 
         return new_blossom, neighbors
 
-    def flower(self, blossom, stem_dex):
+    def flower(self, blossom, mate):
         for edge in blossom.edges:
             neighbor = edge.to_node
             neighbor.pop_edge(edge)
@@ -147,12 +147,21 @@ class Graph:
         self.nodes[blossom.num] = self.nodes[-1]
         self.nodes.pop()
 
-        if stem_dex != 0:
-            half1 = blossom.cycle[:stem_dex]
-            half2 = blossom.cycle[stem_dex:]
-            return half2 + half1
+        if blossom in mate and mate[blossom] is not None:
+            b_mate = mate[blossom]
+            i, _ = blossom.find_neighbor(b_mate)
+            mate[b_mate] = blossom.cycle[i]
+            mate.pop(blossom)
+            half1 = blossom.cycle[:i]
+            half2 = blossom.cycle[i:]
+            blossom.cycle = half2 + half1
         else:
-            return blossom.cycle
+            b_mate = None
+
+        mate[blossom.cycle[0]] = b_mate
+        for k in range(1, len(blossom.cycle), 2):
+            mate[blossom.cycle[k]] = blossom.cycle[k + 1]
+            mate[blossom.cycle[k + 1]] = blossom.cycle[k]
 
     def get_neighborhood(self, node):
         index = node.num
@@ -166,8 +175,11 @@ class Graph:
         else:
             return None
 
+    def get_nodes(self):
+        return list(self.nodes)
+
     def get_edges(self):
-        return self.edges
+        return list(self.edges)
 
 
 def write_graph(pathname):

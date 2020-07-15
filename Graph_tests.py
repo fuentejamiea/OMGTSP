@@ -26,7 +26,6 @@ def random_matching_test(n, num, denom, pickle_path=""):
             n = len(mat)
     else:
         mat = []
-
     cutoff = denom - num
     g1 = Graph()
     model = gurobipy.Model()
@@ -54,7 +53,6 @@ def random_matching_test(n, num, denom, pickle_path=""):
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
-
     mate, _ = maximal_matching(g1)
     expand(g1, mate)
     matching = clean_matching(mate, lambda node: node is not None)
@@ -66,7 +64,6 @@ def random_matching_test(n, num, denom, pickle_path=""):
     grb_match = [v.VarName for v in model.getVars() if v.x != 0]
     diff = len(matching) - len(grb_match)
     if (diff != 0 or invalid != 0) and not pickle_path:
-
         with open('{}_{}_{}_problem_mat.pkl'.format(n,num,denom), 'wb') as f:
             pickle.dump(mat, f)
     return diff, invalid
@@ -120,12 +117,12 @@ class MatchingMethods(unittest.TestCase):
         self.assertEqual(matching, {(18, 15), (14, 13), (12, 11), (17, 16)})
 
     def test_maximal_matching(self):
-        for n in [10, 15, 20, 50, 100]:
+        for n in [10, 15, 20, 50, 75, 100]:
             for num in [1, 3, 7]:
                 self.assertEqual(random_matching_test(n, num, 10), (0, 0))
 
     def test_problem_mat(self):
-        self.assertEqual(random_matching_test(0, 0, 0, "50_1_10_problem_mat.pkl"), (0, 0))
+        self.assertEqual(random_matching_test(10, 3, 10, "50_1_10_problem_mat.pkl"), (0, 0))
 
 
 
