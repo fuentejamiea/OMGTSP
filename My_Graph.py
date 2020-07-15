@@ -163,6 +163,19 @@ class Graph:
             mate[blossom.cycle[k]] = blossom.cycle[k + 1]
             mate[blossom.cycle[k + 1]] = blossom.cycle[k]
 
+    def expand(self, mate):
+        """
+        :param mate:
+            Matching return from maximal matching on Graph
+            *mutates* expands blossoms to result in valid matching on original graph. b_nodes will be unmatched
+        :return:
+            None
+        """
+        b_node = self.nodes[-1]
+        while b_node.is_blossom():
+            self.flower(b_node, mate)
+            b_node = self.nodes[-1]
+
     def get_neighborhood(self, node):
         index = node.num
         while self.nodes[index].num != index:

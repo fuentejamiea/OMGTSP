@@ -4,6 +4,7 @@ from Matching import *
 import numpy as np
 import pickle
 import gurobipy
+import time
 
 
 def random_matching_test(n, num, denom, pickle_path=""):
@@ -23,7 +24,7 @@ def random_matching_test(n, num, denom, pickle_path=""):
     if pickle_path:
         with open(pickle_path, 'rb') as f:
             mat = pickle.load(f)
-            n = len(mat)
+            n, num, denom = map(int, pickle_path.split("_")[:3])
     else:
         mat = []
     cutoff = denom - num
@@ -54,7 +55,6 @@ def random_matching_test(n, num, denom, pickle_path=""):
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
     mate, _ = maximal_matching(g1)
-    expand(g1, mate)
     matching = clean_matching(mate, lambda node: node is not None)
     count1 = len(matching)
     matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
@@ -80,7 +80,7 @@ class GraphMethods(unittest.TestCase):
         carina = Node(2)
         friendship = Edge(jamie, carina, 100000)
 
-        self.assertEqual(str(friendship), "(1-(100000)-2)")
+        self.assertEqual(str(friendship), "(N(1)-(100000)-N(2))")
 
     def test_graph(self):
         friends = Graph()
@@ -112,18 +112,17 @@ class MatchingMethods(unittest.TestCase):
                 mate[edge.to_node] = edge.from_node
                 mate[edge.from_node] = edge.to_node
 
-        mate, outer = maximal_matching(graph, mate)
+        mate, outer = maximal_matching(graph, mate, False)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(matching, {(18, 15), (14, 13), (12, 11), (17, 16)})
 
     def test_maximal_matching(self):
         for n in [10, 15, 20, 50, 75, 100]:
             for num in [1, 3, 7]:
-                self.assertEqual(random_matching_test(n, num, 10), (0, 0))
+                self.assertEqual((0, 0), random_matching_test(n, num, 10))
 
     def test_problem_mat(self):
-        self.assertEqual(random_matching_test(10, 3, 10, "50_1_10_problem_mat.pkl"), (0, 0))
-
+        self.assertEqual(random_matching_test(10, 3, 10, "10_3_10_problem_mat.pkl"), (0, 0))
 
 
 

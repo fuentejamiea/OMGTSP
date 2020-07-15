@@ -142,7 +142,7 @@ def aps(graph, mate, root):
     return outer
 
 
-def maximal_matching(graph, mate=None):
+def maximal_matching(graph, mate=None, exp_bool=True):
     """
     :param graph:
         Graph Object from My_Graph module
@@ -163,41 +163,10 @@ def maximal_matching(graph, mate=None):
             o = aps(graph, mate, root)
             if o:
                 outer.update(o)
-        expand(graph, mate)
+        if exp_bool:
+            graph.expand(mate)
 
     return mate, outer
-
-def expand(graph, mate):
-    """
-    :param graph:
-        My_Graph Graph object after maximal matching has been called
-        *mutates* expands blossoms and deletes blossom nodes and edges
-    :param mate:
-        Matching return from maximal matching on Graph
-        *mutates* expands blossoms to result in valid matching on original graph. b_nodes will be unmatched
-    :return:
-        None
-    """
-    b_node = graph.nodes[-1]
-    while b_node.is_blossom():
-        i = 0
-        if b_node in mate and mate[b_node] is not None:
-            b_mate = mate[b_node]
-            i, _ = b_node.find_neighbor(b_mate)
-            mate[b_mate] = b_node.cycle[i]
-            mate.pop(b_node)
-        else:
-            b_mate = None
-
-        cycle = graph.flower(b_node, i)
-        mate[cycle[0]] = b_mate
-        for k in range(1, len(cycle), 2):
-            mate[cycle[k]] = cycle[k + 1]
-            mate[cycle[k + 1]] = cycle[k]
-
-        b_node = graph.nodes[-1]
-
-
 
 def clean_matching(mate, valid):
     """
