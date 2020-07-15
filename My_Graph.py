@@ -1,6 +1,6 @@
 class Node:
     def __init__(self, num):
-        self.edges = set()
+        self.edges = []
         self.num = num
         self.val = 0
         self.alive = True
@@ -20,8 +20,16 @@ class Node:
     def get_edges(self):
         return list(self.edges)
 
+    def get_edge(self, node):
+        for e in self.edges:
+            if node is e.from_node or node is e.to_node:
+                return e
+        return None
+
     def pop_edge(self, e):
-        self.edges.remove(e)
+        i = self.edges.index(e)
+        self.edges[i] = self.edges[-1]
+        self.edges.pop()
 
     def get_neighbors(self):
         neighbors = set()
@@ -50,9 +58,9 @@ class Blossom(Node):
     def find_neighbor(self, node):
         for i in range(len(self.cycle)):
             candidate = self.cycle[i]
-            e = candidate.edges.intersection(node.edges)
+            e = candidate.get_edge(node)
             if e:
-                return i, e.pop()
+                return i, e
         return None
 
     def __str__(self):
@@ -98,8 +106,8 @@ class Graph:
 
     def add_edge(self, from_node, to_node, weight, update=True):
         new_edge = Edge(from_node, to_node, weight)
-        from_node.edges.add(new_edge)
-        to_node.edges.add(new_edge)
+        from_node.edges.append(new_edge)
+        to_node.edges.append(new_edge)
         if update:
             # dont want to save dummy edges
             self.edges.append(new_edge)
@@ -110,6 +118,7 @@ class Graph:
         new_blossom = Blossom(n, cycle)
         self.nodes.append(new_blossom)
         neighbors = set()
+
         for node in cycle:
             node.kill()
             self.nodes[node.num] = new_blossom
@@ -156,9 +165,6 @@ class Graph:
             return self.nodes[num]
         else:
             return None
-
-    def get_edge(self, from_node, to_node):
-        return from_node.edges.intersection(to_node.edges)
 
     def get_edges(self):
         return self.edges

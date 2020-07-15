@@ -71,10 +71,9 @@ def shrink_blossom(graph, node1, node2, parent):
     b1.reverse()
     cycle = b1 + b2
     b_node, neighbors = graph.add_blossom(cycle)
-    cycle = set(cycle)
 
     for node in neighbors:
-        if node in parent and parent[node] in cycle:
+        if node in parent and parent[node] and not parent[node].is_alive():
             parent[node] = b_node
 
     parent[b_node] = parent[stem]
@@ -108,7 +107,7 @@ def aps(graph, mate, root):
         if not node1.is_alive() or node1 in visited:
             continue
         visited.add(node1)
-        for edge in node1.get_edges():
+        for edge in node1.edges:
             if edge.is_alive():
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
                 if node2 not in mate and node2 not in parent:
@@ -127,14 +126,14 @@ def aps(graph, mate, root):
                     outer.add(partner)
                     if partner.is_blossom():
                         outer.update(partner.cycle)
-                    q.append(mate[node2])
+                    q.append(partner)
 
                 elif node2 in outer:
                     # blossom detected
                     b_node = shrink_blossom(graph, node1, node2, parent)
                     outer.add(b_node)
                     outer.update(b_node.cycle)
-                    q.append(b_node)
+                    q.appendleft(b_node)
                     if b_node.cycle[0] in mate:
                         mate[b_node] = mate[b_node.cycle[0]]
                         mate[b_node.cycle[0]] = b_node

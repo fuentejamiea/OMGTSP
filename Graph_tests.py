@@ -6,7 +6,7 @@ import pickle
 import gurobipy
 
 
-def random_matching_test(n, num, denom, pickle_path=False):
+def random_matching_test(n, num, denom, pickle_path=""):
     """
     :param n:
         number of Nodes in test Graph
@@ -66,8 +66,7 @@ def random_matching_test(n, num, denom, pickle_path=False):
     grb_match = [v.VarName for v in model.getVars() if v.x != 0]
     diff = len(matching) - len(grb_match)
     if (diff != 0 or invalid != 0) and not pickle_path:
-        print(matching)
-        print(grb_match)
+
         with open('{}_{}_{}_problem_mat.pkl'.format(n,num,denom), 'wb') as f:
             pickle.dump(mat, f)
     return diff, invalid
@@ -121,9 +120,13 @@ class MatchingMethods(unittest.TestCase):
         self.assertEqual(matching, {(18, 15), (14, 13), (12, 11), (17, 16)})
 
     def test_maximal_matching(self):
-        for n in [10, 15, 25, 50, 100]:
+        for n in [10, 15, 20, 50, 100]:
             for num in [1, 3, 7]:
                 self.assertEqual(random_matching_test(n, num, 10), (0, 0))
+
+    def test_problem_mat(self):
+        self.assertEqual(random_matching_test(0, 0, 0, "50_1_10_problem_mat.pkl"), (0, 0))
+
 
 
 
