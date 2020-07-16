@@ -54,7 +54,7 @@ def random_matching_test(n, num, denom, pickle_path=""):
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
-    mate, _ = maximal_matching(g1)
+    mate, _, _ = maximal_matching(g1)
     matching = clean_matching(mate, lambda node: node is not None)
     count1 = len(matching)
     matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
@@ -122,7 +122,7 @@ class MatchingMethods(unittest.TestCase):
                 self.assertEqual((0, 0), random_matching_test(n, num, 10))
 
     def test_problem_mat(self):
-        self.assertEqual(random_matching_test(10, 3, 10, "10_3_10_problem_mat.pkl"), (0, 0))
+        self.assertEqual(random_matching_test(0, 0, 0, "50_1_10_problem_mat.pkl"), (0, 0))
 
 
 

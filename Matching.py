@@ -99,7 +99,10 @@ def aps(graph, mate, root):
 
     """
     visited = set()
+    inner = set()
     outer = {root}
+    if root.is_blossom():
+        outer.update(root.cycle)
     parent = {root: None}
     q = deque([root])
     while q:
@@ -123,6 +126,9 @@ def aps(graph, mate, root):
                     parent[node2] = node1
                     partner = mate[node2]
                     parent[partner] = node2
+                    inner.add(node2)
+                    if node2.is_blossom():
+                        inner.update(node2.cycle)
                     outer.add(partner)
                     if partner.is_blossom():
                         outer.update(partner.cycle)
@@ -139,10 +145,10 @@ def aps(graph, mate, root):
                         mate[b_node.cycle[0]] = b_node
                     if not node1.is_alive():
                         break
-    return outer
+    return inner, outer
 
 
-def maximal_matching(graph, mate=None, exp_bool=True):
+def maximal_matching(graph, mate=None, expand=True):
     """
     :param graph:
         Graph Object from My_Graph module
@@ -157,16 +163,19 @@ def maximal_matching(graph, mate=None, exp_bool=True):
     if mate is None:
         mate = {}
     outer = set()
+    inner = set()
     for root in graph.get_nodes():
         if root.is_alive() and root not in mate:
             # start augmenting path search (BFS format)
             o = aps(graph, mate, root)
             if o:
-                outer.update(o)
-        if exp_bool:
+                inner.update(o[0])
+                outer.update(o[1])
+        if expand:
             graph.expand(mate)
 
-    return mate, outer
+    inner.difference_update(outer)
+    return mate, inner, outer
 
 def clean_matching(mate, valid):
     """
@@ -186,81 +195,83 @@ def clean_matching(mate, valid):
                 matching.add((node2.num, node1.num))
     return matching
 
+
 def weighted_matching(graph):
 
     for node in graph.get_nodes():
-        min_edge = min(node.edges, key=lambda e: e.weight)
+        min_edge = min(node.edges, key=lambda e:e.weight)
         node.val = .5 * min_edge.weight
 
-    for i in range(7):
+    n = len(graph.nodes)
+    i = 0
+    mate = {}
+
+    while len(mate) < n:
+        i += 1
+        print("############round:{}###########".format(str(i)))
         for edge in graph.edges:
             n1 = edge.to_node
             n2 = edge.from_node
             if n1.val + n2.val == edge.weight:
-                print(edge, edge.super)
-                if edge.super is None:
-                    edge.wake()
-                elif isinstance(edge.super,My_Graph.Edge):
-                    edge.super.wake()
-            elif edge.is_alive():
-                edge.set_super(None)
+                edge.active = True
+                if not n1.is_alive() or not n2.is_alive():
+                    n1 = graph.get_neighborhood(n1)
+                    n2 = graph.get_neighborhood(n2)
+                    edge = graph.get_edge(n1, n2)
+                    edge.active = True
+            else:
+                edge.active = False
 
         print([node.val for node in graph.get_nodes()])
         print([edge for edge in graph.get_edges() if edge.is_alive()])
-        mate, outer = maximal_matching(graph)
-
-        inner = set()
-        for node in list(outer):
-            if node.is_blossom():
-                pass
-
-            if node in mate and mate[node] not in outer:
-                inner.add(mate[node])
-                if mate[node].is_blossom():
-                    inner.update(mate[node].cycle)
-
-        print(mate)
-        print(outer)
-        print(inner)
-
+        mate, inner, outer = maximal_matching(graph, mate=mate, expand=False)
         delta1 = delta2 = delta3 = float('inf')
-        for e in graph.edges[:m]:
-            if not isinstance(e.super, My_Graph.Node):
-                n1 = e.to_node
-                n2 = e.from_node
-                n1_out = n1 in outer
-                n1_in = n1 in inner
-                n2_out = n2 in outer
-                n2_in = n2 in inner
-                if n1_out and n2_out:
-                    #print(e, e.super)
-                    #print("delta1 update")
-                    #print(n1,n2, (e.weight - n1.val - n2.val)/2)
-                    delta1 = min(delta1, (e.weight - n1.val - n2.val)/2)
-                elif (n1_out and not (n2_in or n2_out)) or (n2_out and not (n1_in or n1_out)):
-                    #print("delta2 update")
-                    #print(n1, n2, e.weight - n1.val - n2.val)
-                    delta2 = min(delta2, e.weight - n1.val - n2.val)
+        print("mate: ", mate)
+        print("inner:", inner)
+        print("outer:", outer)
 
-        for pseudo in graph.nodes[n:]:
-            if pseudo in inner:
-                delta3 = min(delta3,-pseudo.val/2)
+        for e in graph.edges:
+            n1 = e.to_node
+            n2 = e.from_node
+            n1_out = n1 in outer
+            n1_in = n1 in inner
+            n2_out = n2 in outer
+            n2_in = n2 in inner
+            if n1_out and n2_out and graph.get_neighborhood(n1) is not graph.get_neighborhood(n2):
+                #print("delta1 update")
+                #print(n1,n2, (e.weight - n1.val - n2.val)/2)
+                delta1 = min(delta1, (e.weight - n1.val - n2.val)/2)
+            elif (n1_out and not (n2_in or n2_out)) or (n2_out and not (n1_in or n1_out)):
+                #print("delta2 update")
+                #print(n1, n2, e.weight - n1.val - n2.val)
+                delta2 = min(delta2, e.weight - n1.val - n2.val)
 
-        print(delta1,delta2,delta3)
+        for node in inner:
+            if node.is_blossom():
+                delta3 = min(delta3, -node.val/2)
+
+
+
+        print(delta1, delta2, delta3)
         delta = min(delta1, delta2, delta3)
         for node in inner:
-            if node.num < n:
-                node.val -= delta
+            if node.is_blossom():
+                node.val += 2 * delta
+                if node.val >= 0:
+                    graph.flower(node, mate)
             else:
-                node.val += 2*delta
+                node.val -= delta
 
         for node in outer:
-            if node.num < n:
-                node.val += delta
+            if node.is_blossom():
+                node.val -= 2 * delta
+                if node.val >= 0:
+                    graph.flower(node, mate)
             else:
-                node.val -= 2*delta
+                node.val += delta
 
-        print("##########################################")
+
+
 
 
 def christofides(g):
@@ -286,18 +297,8 @@ def christofides(g):
 
     return weight_dict
 
-#wm = My_Graph.write_graph("TSP/weighted_matching.txt")
-#weighted_matching(wm)
+wm = My_Graph.write_graph("Tests/weighted_matching.txt")
+weighted_matching(wm)
 
-
-graph = My_Graph.write_graph("Tests/sub_blossom_test.txt")
-nodes = list(graph.nodes)
-mate = {}
-for edge in graph.edges:
-    if edge.weight == 1:
-        mate[edge.to_node] = edge.from_node
-        mate[edge.from_node] = edge.to_node
-
-mate, outer = maximal_matching(graph, mate)
 
 
