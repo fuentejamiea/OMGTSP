@@ -141,15 +141,10 @@ class Graph:
 
         return new_blossom, neighbors.keys()
 
-    def flower(self, blossom, mate):
+    def flower(self, blossom, mate, recurse=False):
         for edge in blossom.edges:
             neighbor = edge.to_node
             neighbor.pop_edge(edge)
-
-        for node in blossom.cycle:
-            node.wake()
-            for edge in node.edges:
-                edge.wake()
 
         self.nodes.pop(blossom.num)
 
@@ -168,6 +163,13 @@ class Graph:
         for k in range(1, len(blossom.cycle), 2):
             mate[blossom.cycle[k]] = blossom.cycle[k + 1]
             mate[blossom.cycle[k + 1]] = blossom.cycle[k]
+
+        for node in blossom.cycle:
+            node.wake()
+            if node.is_blossom() and recurse:
+                self.flower(node, mate, True)
+            for edge in node.edges:
+                edge.wake()
 
         return blossom
 

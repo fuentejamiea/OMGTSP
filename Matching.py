@@ -199,7 +199,7 @@ def clean_matching(mate, valid):
 def weighted_matching(graph):
 
     for node in graph.get_nodes():
-        min_edge = min(node.edges, key=lambda e:e.weight)
+        min_edge = min(node.edges, key=lambda e: e.weight)
         node.val = .5 * min_edge.weight
 
     n = len(graph.nodes)
@@ -207,8 +207,6 @@ def weighted_matching(graph):
     mate = {}
 
     while len(mate) < n:
-        i += 1
-        print("############round:{}###########".format(str(i)))
         for edge in graph.edges:
             n1 = edge.to_node
             n2 = edge.from_node
@@ -222,13 +220,8 @@ def weighted_matching(graph):
             else:
                 edge.active = False
 
-        print([node.val for node in graph.get_nodes()])
-        print([edge for edge in graph.get_edges() if edge.is_alive()])
         mate, inner, outer = maximal_matching(graph, mate=mate, expand=False)
         delta1 = delta2 = delta3 = float('inf')
-        print("mate: ", mate)
-        print("inner:", inner)
-        print("outer:", outer)
 
         for e in graph.edges:
             n1 = e.to_node
@@ -249,16 +242,20 @@ def weighted_matching(graph):
         for node in inner:
             if node.is_blossom():
                 delta3 = min(delta3, -node.val/2)
-
-
-
+        i += 1
+        print("############round:{}###########".format(str(i)))
+        print(sum([node.val for node in graph.get_nodes()]), [(node, node.val) for node in graph.get_nodes()])
+        print([edge for edge in graph.get_edges() if edge.is_alive()])
+        print(len(mate), mate)
+        print("inner:", inner)
+        print("outer:", outer)
         print(delta1, delta2, delta3)
         delta = min(delta1, delta2, delta3)
         for node in inner:
             if node.is_blossom():
                 node.val += 2 * delta
                 if node.val >= 0:
-                    graph.flower(node, mate)
+                    graph.flower(node, mate, True)
             else:
                 node.val -= delta
 
@@ -269,6 +266,7 @@ def weighted_matching(graph):
                     graph.flower(node, mate)
             else:
                 node.val += delta
+    return mate, sum([node.val for node in graph.get_nodes()])
 
 
 
@@ -299,6 +297,9 @@ def christofides(g):
 
 wm = My_Graph.write_graph("Tests/weighted_matching.txt")
 weighted_matching(wm)
+
+
+
 
 
 
