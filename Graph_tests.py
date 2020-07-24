@@ -113,19 +113,31 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
     model.update()
     model.optimize()
     opt_val = model.getObjective().getValue()
-    try:
-        my_match, my_obj = weighted_matching(g1)
-        save_flag = opt_val != my_obj
-        print(opt_val, my_obj)
-    except Exception as inst:
-        print(inst)
-        save_flag = True
 
-    if save_flag and not pickle_path:
+
+
+    my_match = weighted_matching(g1)
+    my_match = sorted(clean_matching(my_match, lambda x: x.is_alive()), key=lambda  x:x[0])
+    print(my_match)
+    #my_match = {g1.get_edge(n1, n2) for n1, n2 in my_match.items()}
+    #my_val = sum([e.weight for e in my_match])
+    #print(my_val)
+    #opt_flag = opt_val == my_val
+    opt_flag = True
+
+
+
+    grb_match = [v.VarName.split(',') for v in model.getVars() if v.x != 0]
+    grb_match = sorted([tuple(sorted([int(m[0][1:]),int(m[1][:-1])])) for m in grb_match], key=lambda  x:x[0])
+    print(grb_match)
+    print(opt_val)
+
+
+    if not opt_flag and not pickle_path:
         with open('{}_{}_problem_mat.pkl'.format(n,rand_range), 'wb') as f:
             pickle.dump(mat, f)
 
-    return not save_flag
+    return opt_flag
 
 
 class GraphMethods(unittest.TestCase):
@@ -181,8 +193,12 @@ class MatchingMethods(unittest.TestCase):
                 self.assertEqual((0, 0), random_cardinality_matching(n, num, 10))
 
     def test_random_weights(self):
-        #self.assertTrue(random_weighted_matching(10, 25))
-        self.assertTrue(random_weighted_matching(0, 0, "10_25_problem_mat.pkl"))
+        #self.assertTrue(random_weighted_matching(0, 0, "50_25_problem_mat.pkl"))
+        self.assertTrue(random_weighted_matching(50, 60))
+        """
+        for n in [10, 20, 50, 70, 100]:
+            self.assertTrue(random_weighted_matching(n, 25))
+            """
 
     def test_problem_mat(self):
         self.assertEqual(random_cardinality_matching(0, 0, 0, "50_1_10_problem_mat.pkl"), (0, 0))

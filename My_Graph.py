@@ -40,8 +40,7 @@ class Node:
         return neighbors
 
     def __str__(self):
-        # TODO: CHANGE THIS!
-        return "N({})".format(str(self.num + 1))
+        return "N({})".format(str(self.num))
 
     def __repr__(self):
         return str(self)
@@ -64,7 +63,7 @@ class Blossom(Node):
         return None
 
     def __str__(self):
-        return "B({})".format(str(self.cycle))
+        return "B({})".format(self.num)
 
     def __repr__(self):
         return str(self)
@@ -132,7 +131,7 @@ class Graph:
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
                 if node2.is_alive():
                     if node2 not in neighbors:
-                        e = self.add_edge(new_blossom, node2, -1, False)
+                        e = self.add_edge(new_blossom, node2, 0, False)
                         e.active = False
                         neighbors[node2] = e
                     if edge.active:
@@ -165,6 +164,7 @@ class Graph:
             mate[blossom.cycle[k + 1]] = blossom.cycle[k]
 
         for node in blossom.cycle:
+            self.b_map.pop(node)
             node.wake()
             if node.is_blossom() and recurse:
                 self.flower(node, mate, True)
@@ -189,11 +189,9 @@ class Graph:
         return b
 
     def get_neighborhood(self, node):
-        if node in self.b_map:
-            return self.b_map[node]
-        else:
-            return node
-
+        while node in self.b_map:
+            node = self.b_map[node]
+        return node
 
     def get_node(self, num):
         if num < len(self.nodes):
