@@ -55,6 +55,9 @@ class Blossom(Node):
         return True
 
     def find_neighbor(self, node):
+        if node is self:
+            return None
+
         for i in range(len(self.cycle)):
             candidate = self.cycle[i]
             e = candidate.get_edge(node)
@@ -192,6 +195,15 @@ class Graph:
         while node in self.b_map:
             node = self.b_map[node]
         return node
+
+    def get_neighborhood_list(self, node):
+        n = [node]
+        while node in self.b_map:
+            node = self.b_map[node]
+            n.append(node)
+        return n
+
+
 
     def get_node(self, num):
         if num < len(self.nodes):

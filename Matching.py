@@ -141,7 +141,7 @@ def aps(graph, mate, root):
                     q.appendleft(b_node)
                     if b_node.cycle[0] in mate:
                         mate[b_node] = mate[b_node.cycle[0]]
-                        mate[b_node.cycle[0]] = b_node
+                        mate[mate[b_node.cycle[0]]] = b_node
                     if not node1.is_alive():
                         break
     return inner, outer
@@ -187,6 +187,8 @@ def maximal_matching(graph, mate=None, expand=True):
     inner_b.difference_update(outer_b)
     return mate, inner_n, inner_b, outer_n, outer_b
 
+
+
 def clean_matching(mate, valid):
     """
     :param mate:
@@ -199,7 +201,7 @@ def clean_matching(mate, valid):
     matching = set()
     for node1, node2 in mate.items():
         if valid(node1) and valid(node2):
-            if node2.num < node1.num:
+            if node2.num > node1.num:
                 matching.add((node2.num, node1.num))
             else:
                 matching.add((node1.num, node2.num))
@@ -217,22 +219,38 @@ def weighted_matching(graph):
     mate = {}
 
     while len(mate) < n:
+        print("############round:{}###########".format(str(i)))
+        active_edges = []
         for edge in graph.edges:
             n1 = edge.to_node
             n2 = edge.from_node
-            b1 = graph.get_neighborhood(n1)
-            b2 = graph.get_neighborhood(n2)
             if n1.val + n2.val == edge.weight:
                 edge.active = True
+                active_edges.append(edge)
+
                 if not n1.is_alive() or not n2.is_alive():
-                    edge = graph.get_edge(b1, b2)
-                    edge.active = True
+                    neigh1 = graph.get_neighborhood_list(n1)
+                    neigh2 = graph.get_neighborhood_list(n2)
+                    n1 = neigh1[-1]
+                    n2 = neigh2[-1]
+                    if n1 is n2:
+                        continue
+
+                    for b in neigh1:
+                        edge = graph.get_edge(b, n2)
+                        if edge:
+                            edge.active = True
+
+                    for b in neigh2:
+                        edge = graph.get_edge(b, n1)
+                        if edge:
+                            edge.active = True
+
             else:
                 edge.active = False
 
-        print("############round:{}###########".format(str(i)))
-        print(sum([node.val for node in graph.get_nodes()]), [(node, node.val) for node in graph.get_nodes()])
-        print([edge for edge in graph.get_edges() if edge.is_alive()])
+        print(active_edges)
+        print([(node, node.val) for node in graph.get_nodes()])
         print([(b, b.cycle) for b in graph.nodes[n:]])
 
         mate, inner_n, inner_b, outer_n, outer_b = maximal_matching(graph, mate=mate, expand=False)
@@ -246,13 +264,11 @@ def weighted_matching(graph):
             n2_out = n2 in outer_n
             n2_in = n2 in inner_n
             if n1_out and n2_out and graph.get_neighborhood(n1) is not graph.get_neighborhood(n2):
-                if (e.weight - n1.val - n2.val) <= 0:
-                    print(n1, n1.val, e, n2, n2.val)
                 delta1 = min(delta1, (e.weight - n1.val - n2.val)/2)
 
             elif (n1_out and not (n2_in or n2_out)) or (n2_out and not (n1_in or n1_out)):
-                if (e.weight - n1.val - n2.val) <= 0:
-                    print(n1, n1.val, e, n2, n2.val)
+                if e.weight - n1.val - n2.val <= 0:
+                    print(n1, n2, n1.val, n2.val, e.weight)
                 delta2 = min(delta2, e.weight - n1.val - n2.val)
 
         for node in inner_b:
@@ -269,6 +285,10 @@ def weighted_matching(graph):
         print(delta1, delta2, delta3)
         delta = min(delta1, delta2, delta3)
 
+        if i > n + 1 or delta <= 0:
+            print("#############################")
+            return {}
+
         for node in inner_n:
             node.val -= delta
 
@@ -284,16 +304,14 @@ def weighted_matching(graph):
                 blossom.val += 2 * delta
 
             if blossom.val >= 0:
-                graph.flower(blossom, mate, True)
+                graph.flower(blossom, mate)
             else:
                 j -= 1
             blossom = graph.nodes[j]
+    print("#############################")
+    graph.expand(mate)
 
-    #graph.expand(mate)
     return mate
-
-
-
 
 
 def christofides(g):
@@ -318,12 +336,3 @@ def christofides(g):
                     weight_dict[j][i] = g.edges[-1].weight + 1
 
     return weight_dict
-
-wm = My_Graph.write_graph("Tests/weighted_matching.txt")
-weighted_matching(wm)
-
-
-
-
-
-

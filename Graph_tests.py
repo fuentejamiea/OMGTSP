@@ -54,7 +54,7 @@ def random_cardinality_matching(n, num, denom, pickle_path=""):
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
-    mate, _, _ = maximal_matching(g1)
+    mate, _, _, _, _ = maximal_matching(g1)
     matching = clean_matching(mate, lambda node: node is not None)
     count1 = len(matching)
     matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
@@ -116,26 +116,25 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
 
 
 
-    my_match = weighted_matching(g1)
-    my_match = sorted(clean_matching(my_match, lambda x: x.is_alive()), key=lambda  x:x[0])
-    print(my_match)
-    #my_match = {g1.get_edge(n1, n2) for n1, n2 in my_match.items()}
-    #my_val = sum([e.weight for e in my_match])
-    #print(my_val)
-    #opt_flag = opt_val == my_val
-    opt_flag = True
-
-
-
+    mate = weighted_matching(g1)
     grb_match = [v.VarName.split(',') for v in model.getVars() if v.x != 0]
-    grb_match = sorted([tuple(sorted([int(m[0][1:]),int(m[1][:-1])])) for m in grb_match], key=lambda  x:x[0])
+    grb_match = sorted([tuple(sorted([int(m[0][1:]), int(m[1][:-1])],reverse= True
+                                     )) for m in grb_match], key=lambda x: x[0])
     print(grb_match)
     print(opt_val)
 
+    my_match = {g1.get_edge(n1, n2) for n1, n2 in mate.items()}
+    my_val = sum([e.weight for e in my_match])
+    my_match = sorted(clean_matching(mate, lambda x: x.is_alive()), key=lambda x: x[0])
+    print(my_match)
+    print(my_val)
+    opt_flag = opt_val == my_val
 
-    if not opt_flag and not pickle_path:
-        with open('{}_{}_problem_mat.pkl'.format(n,rand_range), 'wb') as f:
-            pickle.dump(mat, f)
+    if not opt_flag:
+        print("{}_{}_random matching failure".format(n,rand_range))
+        if not pickle_path:
+            with open('{}_{}_problem_mat.pkl'.format(n,rand_range), 'wb') as f:
+                pickle.dump(mat, f)
 
     return opt_flag
 
@@ -192,17 +191,21 @@ class MatchingMethods(unittest.TestCase):
             for num in [1, 3, 7]:
                 self.assertEqual((0, 0), random_cardinality_matching(n, num, 10))
 
+    def test_weighted_matching(self):
+        graph = My_Graph.write_graph("Tests/weighted_matching.txt")
+        mate = weighted_matching(graph)
+        my_match = {graph.get_edge(n1, n2) for n1, n2 in mate.items()}
+        my_val = sum([e.weight for e in my_match])
+        self.assertEqual(my_val, 44)
+
+
     def test_random_weights(self):
-        #self.assertTrue(random_weighted_matching(0, 0, "50_25_problem_mat.pkl"))
-        self.assertTrue(random_weighted_matching(50, 60))
-        """
-        for n in [10, 20, 50, 70, 100]:
-            self.assertTrue(random_weighted_matching(n, 25))
-            """
+        for n in [100]:
+            self.assertTrue(random_weighted_matching(0, 0, "{}_25_problem_mat.pkl".format(n)))
+
 
     def test_problem_mat(self):
         self.assertEqual(random_cardinality_matching(0, 0, 0, "50_1_10_problem_mat.pkl"), (0, 0))
-
 
 
 if __name__ == '__main__':
