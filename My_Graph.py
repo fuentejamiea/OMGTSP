@@ -143,7 +143,7 @@ class Graph:
         return new_blossom, neighbors.keys()
 
     def flower(self, blossom, mate, recurse=False):
-        print(blossom)
+        #print(blossom)
         for edge in blossom.edges:
             neighbor = edge.to_node
             neighbor.pop_edge(edge)

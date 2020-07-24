@@ -226,27 +226,33 @@ def weighted_matching(graph):
             n1 = edge.to_node
             n2 = edge.from_node
             bval = 0
-            if n1 in graph.b_map and n2 in graph.b_map and graph.b_map[n1] is graph.b_map[n2]:
-                bval = graph.b_map[n1].val
+            neigh1 = graph.get_neighborhood_list(n1)
+            neigh2 = graph.get_neighborhood_list(n2)
+            i = -1
+            b1 = neigh1[i]
+            b2 = neigh2[i]
+            if b1 is b2:
+                while b1 is b2:
+                    i -= 1
+                    b1 = neigh1[i]
+                    b2 = neigh2[i]
+                bval = neigh1[i + 1].val
+
+
+
+
             if n1.val + n2.val + bval == edge.weight:
-                if n1.num == 13 or n2.num == 13:
-                    print(edge)
                 edge.active = True
                 active_edges.append(edge)
 
                 if not n1.is_alive() or not n2.is_alive():
-                    neigh1 = graph.get_neighborhood_list(n1)
-                    neigh2 = graph.get_neighborhood_list(n2)
-                    n1 = neigh1[-1]
-                    n2 = neigh2[-1]
-
                     for b in neigh1:
-                        edge = graph.get_edge(b, n2)
+                        edge = graph.get_edge(b, b2)
                         if edge:
                             edge.active = True
 
                     for b in neigh2:
-                        edge = graph.get_edge(b, n1)
+                        edge = graph.get_edge(b, b1)
                         if edge:
                             edge.active = True
 

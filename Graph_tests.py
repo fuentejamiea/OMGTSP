@@ -188,12 +188,11 @@ class MatchingMethods(unittest.TestCase):
 
 
     def test_random_weights(self):
-        """
         for n in [10,20,30,50,70,100]:
-            self.assertTrue(random_weighted_matching(n, 30))
-            """
+            for r in [30,50,70]:
+                self.assertTrue(random_weighted_matching(n, r))
 
-        self.assertTrue(random_weighted_matching(0, 0, "100_25_problem_mat.pkl"))
+
 
 
 
