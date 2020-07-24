@@ -140,10 +140,10 @@ class Graph:
                     if edge.active:
                         neighbors[node2].active = True
 
-
         return new_blossom, neighbors.keys()
 
     def flower(self, blossom, mate, recurse=False):
+        print(blossom)
         for edge in blossom.edges:
             neighbor = edge.to_node
             neighbor.pop_edge(edge)
@@ -152,7 +152,12 @@ class Graph:
 
         if blossom in mate:
             b_mate = mate[blossom]
-            i, _ = blossom.find_neighbor(b_mate)
+            ret = blossom.find_neighbor(b_mate)
+            if not ret:
+                print(blossom, b_mate)
+                print(blossom.cycle)
+                print([edge for edge in b_mate.edges if edge.active])
+            i = ret[0]
             mate[b_mate] = blossom.cycle[i]
             mate.pop(blossom)
             half1 = blossom.cycle[:i]

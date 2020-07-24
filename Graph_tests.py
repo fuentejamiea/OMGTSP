@@ -121,13 +121,13 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
     grb_match = sorted([tuple(sorted([int(m[0][1:]), int(m[1][:-1])],reverse= True
                                      )) for m in grb_match], key=lambda x: x[0])
     print(grb_match)
-    print(opt_val)
+
 
     my_match = {g1.get_edge(n1, n2) for n1, n2 in mate.items()}
     my_val = sum([e.weight for e in my_match])
     my_match = sorted(clean_matching(mate, lambda x: x.is_alive()), key=lambda x: x[0])
     print(my_match)
-    print(my_val)
+    print(opt_val, my_val)
     opt_flag = opt_val == my_val
 
     if not opt_flag:
@@ -170,23 +170,11 @@ class MatchingMethods(unittest.TestCase):
 
     def test_aps(self):
         graph = write_graph("Tests/Matching_test1.txt")
-        mate, inner, outer= maximal_matching(graph)
+        mate, _, _, _, _ = maximal_matching(graph)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(len(matching), 6)
 
-    def test_blossom(self):
-        graph = write_graph("Tests/blossom_test1.txt")
-        mate = {}
-        for edge in graph.edges:
-            if edge.weight == 1:
-                mate[edge.to_node] = edge.from_node
-                mate[edge.from_node] = edge.to_node
-
-        mate, inner, outer = maximal_matching(graph, mate, False)
-        matching = clean_matching(mate, lambda node: node.is_alive())
-        self.assertEqual(matching, {(18, 15), (14, 13), (12, 11), (17, 16)})
-
-    def test_maximal_matching(self):
+    def test_random_maximal(self):
         for n in [10, 15, 20, 50, 75, 100]:
             for num in [1, 3, 7]:
                 self.assertEqual((0, 0), random_cardinality_matching(n, num, 10))
@@ -200,12 +188,14 @@ class MatchingMethods(unittest.TestCase):
 
 
     def test_random_weights(self):
-        for n in [100]:
-            self.assertTrue(random_weighted_matching(0, 0, "{}_25_problem_mat.pkl".format(n)))
+        """
+        for n in [10,20,30,50,70,100]:
+            self.assertTrue(random_weighted_matching(n, 30))
+            """
+
+        self.assertTrue(random_weighted_matching(0, 0, "100_25_problem_mat.pkl"))
 
 
-    def test_problem_mat(self):
-        self.assertEqual(random_cardinality_matching(0, 0, 0, "50_1_10_problem_mat.pkl"), (0, 0))
 
 
 if __name__ == '__main__':

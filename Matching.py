@@ -142,6 +142,7 @@ def aps(graph, mate, root):
                     if b_node.cycle[0] in mate:
                         mate[b_node] = mate[b_node.cycle[0]]
                         mate[mate[b_node.cycle[0]]] = b_node
+                        mate.pop(b_node.cycle[0])
                     if not node1.is_alive():
                         break
     return inner, outer
@@ -224,7 +225,12 @@ def weighted_matching(graph):
         for edge in graph.edges:
             n1 = edge.to_node
             n2 = edge.from_node
-            if n1.val + n2.val == edge.weight:
+            bval = 0
+            if n1 in graph.b_map and n2 in graph.b_map and graph.b_map[n1] is graph.b_map[n2]:
+                bval = graph.b_map[n1].val
+            if n1.val + n2.val + bval == edge.weight:
+                if n1.num == 13 or n2.num == 13:
+                    print(edge)
                 edge.active = True
                 active_edges.append(edge)
 
@@ -233,8 +239,6 @@ def weighted_matching(graph):
                     neigh2 = graph.get_neighborhood_list(n2)
                     n1 = neigh1[-1]
                     n2 = neigh2[-1]
-                    if n1 is n2:
-                        continue
 
                     for b in neigh1:
                         edge = graph.get_edge(b, n2)
@@ -249,8 +253,6 @@ def weighted_matching(graph):
             else:
                 edge.active = False
 
-        print(active_edges)
-        print([(node, node.val) for node in graph.get_nodes()])
         print([(b, b.cycle) for b in graph.nodes[n:]])
 
         mate, inner_n, inner_b, outer_n, outer_b = maximal_matching(graph, mate=mate, expand=False)
