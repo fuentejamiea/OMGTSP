@@ -181,6 +181,7 @@ def maximal_matching(graph, mate=None, expand=True):
         if root.is_alive() and root not in mate:
             # start augmenting path search (BFS format)
             o = aps(graph, mate, root)
+            print(o)
             if o:
                 blossom_set_update(inner_n, inner_b, o[0])
                 blossom_set_update(outer_n, outer_b, o[1])
@@ -248,21 +249,25 @@ def weighted_matching(graph):
 
             if n1.val + n2.val + sum(b.val for b in s_val) == edge.weight:
                 edge.active = True
-                print(edge, s_val)
 
                 if not n1.is_alive() or not n2.is_alive():
                     edge = graph.get_edge(neigh2[-1], neigh1[-1])
                     edge.active = True
-                    print(edge)
 
             else:
                 edge.active = False
         mate, inner_n, inner_b, outer_n, outer_b = maximal_matching(graph, mate=mate, expand=False)
+        if len(mate) == n:
+            break
+
         print(len(mate), mate)
+        print("left:", len(outer_n) - len(inner_n) - 2 * sum([(len(b.members) -1) /2 for b in outer_b]) +
+              2 * sum([(len(b.members) -1) /2 for b in inner_b]))
         print("inner_b", inner_b)
         print("outer_b", outer_b)
         print("inner_n",inner_n)
         print("outer_n", outer_n)
+        print([(b, b.cycle) for b in graph.nodes[n:]])
         delta1 = delta2 = delta3 = float('inf')
 
         for e in graph.edges:
@@ -273,9 +278,12 @@ def weighted_matching(graph):
             n2_out = n2 in outer_n
             n2_in = n2 in inner_n
             if n1_out and n2_out and graph.get_neighborhood(n1) is not graph.get_neighborhood(n2):
+                if (e.weight - n1.val - n2.val)/2 <= 0:
+                    print("d1", n1,n2)
                 delta1 = min(delta1, (e.weight - n1.val - n2.val)/2)
-
             elif (n1_out and not (n2_in or n2_out)) or (n2_out and not (n1_in or n1_out)):
+                if (e.weight - n1.val - n2.val) <= 0:
+                    print("d2", n1,n2)
                 delta2 = min(delta2, e.weight - n1.val - n2.val)
 
         for node in inner_b:
@@ -284,7 +292,7 @@ def weighted_matching(graph):
         delta = min(delta1, delta2, delta3)
         print(delta1, delta2, delta3)
         if delta <= 0:
-            return {}
+            return -1
 
         for node in inner_n:
             node.val -= delta
@@ -295,23 +303,19 @@ def weighted_matching(graph):
         j = -1
         blossom = graph.nodes[j]
         while blossom.is_blossom():
-            if blossom.is_alive():
-                if blossom in outer_b:
-                    blossom.val -= 2 * delta
-                elif blossom in inner_b:
-                    blossom.val += 2 * delta
+            if blossom in outer_b:
+                blossom.val -= 2 * delta
+            elif blossom in inner_b:
+                blossom.val += 2 * delta
 
-                if blossom.val == 0:
-                    graph.flower(blossom, mate)
-                else:
-                    j -= 1
+            if blossom.val == 0 and blossom.is_alive():
+                graph.flower(blossom, mate)
             else:
                 j -= 1
             blossom = graph.nodes[j]
-        print([(b, b.cycle) for b in graph.nodes[n:]])
         print([node.val for node in graph.nodes])
         s1 = sum([nodes.val for nodes in graph.nodes[:n]])
-        s2 = sum([b.val * ((len(b.cycle) - 1)/2) for b in graph.nodes[n:]])
+        s2 = sum([b.val * ((len(b.members) - 1)/2) for b in graph.nodes[n:]])
         print(s1 + s2)
 
     return s1 + s2

@@ -92,6 +92,7 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
         mat = []
     g1 = Graph()
     model = gurobipy.Model()
+    model.setParam("OutputFlag", False)
     g1.add_nodes(n)
     con_map = {i: set() for i in range(n)}
 
@@ -100,7 +101,6 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
         if not pickle_path:
             new_row = np.random.randint(1, rand_range, i)
             mat.append(new_row)
-        print(mat[i])
         for j in range(i):
             n1 = g1.get_node(i)
             n2 = g1.get_node(j)
@@ -181,7 +181,7 @@ class MatchingMethods(unittest.TestCase):
                 self.assertTrue(random_weighted_matching(n, r))
 
     def test_instance(self):
-        self.assertTrue(random_weighted_matching(0,0, "8_25_problem_mat.pkl"))
+        self.assertTrue(random_weighted_matching(0,0,"70_30_problem_mat.pkl"))
 
 
 if __name__ == '__main__':

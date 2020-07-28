@@ -47,9 +47,10 @@ class Node:
 
 
 class Blossom(Node):
-    def __init__(self, num, cycle):
+    def __init__(self, num, cycle, members):
         super(Blossom, self).__init__(num)
         self.cycle = cycle
+        self.members = members
 
     def is_blossom(self):
         return True
@@ -120,7 +121,7 @@ class Graph:
 
     def add_blossom(self, cycle, n_members, b_members):
         n = len(self.nodes)
-        new_blossom = Blossom(n, cycle)
+        new_blossom = Blossom(n, cycle, n_members)
         cycle = set(cycle)
         self.nodes.append(new_blossom)
         neighbors = {}
@@ -144,7 +145,6 @@ class Graph:
         return new_blossom, neighbors.keys()
 
     def flower(self, blossom, mate, recurse=False):
-        print(blossom)
         self.nodes.remove(blossom)
 
         if blossom in mate:
@@ -176,12 +176,8 @@ class Graph:
                 self.flower(node, mate, True)
             for edge in node.edges:
                 edge.wake()
-        if blossom.num == 50:
-            print(blossom.edges)
         for edge in blossom.edges:
             neighbor = edge.to_node if edge.to_node is not blossom else edge.from_node
-            if blossom.num == 50:
-                print(neighbor)
             neighbor.pop_edge(edge)
 
         return blossom
