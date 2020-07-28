@@ -118,9 +118,10 @@ class Graph:
             self.edges.append(new_edge)
         return new_edge
 
-    def add_blossom(self, cycle):
+    def add_blossom(self, cycle, n_members, b_members):
         n = len(self.nodes)
         new_blossom = Blossom(n, cycle)
+        cycle = set(cycle)
         self.nodes.append(new_blossom)
         neighbors = {}
 
@@ -132,7 +133,7 @@ class Graph:
             for edge in node1.edges:
                 edge.kill()
                 node2 = edge.from_node if node1 is edge.to_node else edge.to_node
-                if node2.is_alive():
+                if node2 not in n_members and node2 not in b_members:
                     if node2 not in neighbors:
                         e = self.add_edge(new_blossom, node2, 0, False)
                         e.active = False
@@ -143,12 +144,8 @@ class Graph:
         return new_blossom, neighbors.keys()
 
     def flower(self, blossom, mate, recurse=False):
-        #print(blossom)
-        for edge in blossom.edges:
-            neighbor = edge.to_node
-            neighbor.pop_edge(edge)
-
-        self.nodes.pop(blossom.num)
+        print(blossom)
+        self.nodes.remove(blossom)
 
         if blossom in mate:
             b_mate = mate[blossom]
@@ -157,6 +154,7 @@ class Graph:
                 print(blossom, b_mate)
                 print(blossom.cycle)
                 print([edge for edge in b_mate.edges if edge.active])
+                print([edge for edge in b_mate.edges if not edge.active])
             i = ret[0]
             mate[b_mate] = blossom.cycle[i]
             mate.pop(blossom)
@@ -178,6 +176,13 @@ class Graph:
                 self.flower(node, mate, True)
             for edge in node.edges:
                 edge.wake()
+        if blossom.num == 50:
+            print(blossom.edges)
+        for edge in blossom.edges:
+            neighbor = edge.to_node if edge.to_node is not blossom else edge.from_node
+            if blossom.num == 50:
+                print(neighbor)
+            neighbor.pop_edge(edge)
 
         return blossom
 

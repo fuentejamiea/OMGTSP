@@ -27,6 +27,7 @@ def random_cardinality_matching(n, num, denom, pickle_path=""):
             n, num, denom = map(int, pickle_path.split("_")[:3])
     else:
         mat = []
+
     cutoff = denom - num
     g1 = Graph()
     model = gurobipy.Model()
@@ -50,7 +51,6 @@ def random_cardinality_matching(n, num, denom, pickle_path=""):
                 model.update()
                 con_map[i].add(new_var)
                 con_map[j].add(new_var)
-
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
@@ -63,9 +63,11 @@ def random_cardinality_matching(n, num, denom, pickle_path=""):
     model.optimize()
     grb_match = [v.VarName for v in model.getVars() if v.x != 0]
     diff = len(matching) - len(grb_match)
-    if (diff != 0 or invalid != 0) and not pickle_path:
-        with open('{}_{}_{}_problem_mat.pkl'.format(n,num,denom), 'wb') as f:
-            pickle.dump(mat, f)
+    if (diff != 0 or invalid != 0):
+        print("{}_{}_{}cardinality matching failure".format(n, num, denom))
+        if not pickle_path:
+            with open('{}_{}_{}_problem_mat.pkl'.format(n,num,denom), 'wb') as f:
+                pickle.dump(mat, f)
     return diff, invalid
 
 def random_weighted_matching(n, rand_range, pickle_path=""):
@@ -90,7 +92,6 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
         mat = []
     g1 = Graph()
     model = gurobipy.Model()
-    model.setParam("OutputFlag", False)
     g1.add_nodes(n)
     con_map = {i: set() for i in range(n)}
 
@@ -99,6 +100,7 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
         if not pickle_path:
             new_row = np.random.randint(1, rand_range, i)
             mat.append(new_row)
+        print(mat[i])
         for j in range(i):
             n1 = g1.get_node(i)
             n2 = g1.get_node(j)
@@ -108,30 +110,19 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
             con_map[i].add(new_var)
             con_map[j].add(new_var)
 
+
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) == 1)
     model.update()
     model.optimize()
     opt_val = model.getObjective().getValue()
+    my_val = weighted_matching(g1)
 
-
-
-    mate = weighted_matching(g1)
-    grb_match = [v.VarName.split(',') for v in model.getVars() if v.x != 0]
-    grb_match = sorted([tuple(sorted([int(m[0][1:]), int(m[1][:-1])],reverse= True
-                                     )) for m in grb_match], key=lambda x: x[0])
-    print(grb_match)
-
-
-    my_match = {g1.get_edge(n1, n2) for n1, n2 in mate.items()}
-    my_val = sum([e.weight for e in my_match])
-    my_match = sorted(clean_matching(mate, lambda x: x.is_alive()), key=lambda x: x[0])
-    print(my_match)
-    print(opt_val, my_val)
     opt_flag = opt_val == my_val
 
     if not opt_flag:
-        print("{}_{}_random matching failure".format(n,rand_range))
+        print(opt_val, my_val)
+        print("{}_{}_weighted matching failure".format(n,rand_range))
         if not pickle_path:
             with open('{}_{}_problem_mat.pkl'.format(n,rand_range), 'wb') as f:
                 pickle.dump(mat, f)
@@ -181,20 +172,16 @@ class MatchingMethods(unittest.TestCase):
 
     def test_weighted_matching(self):
         graph = My_Graph.write_graph("Tests/weighted_matching.txt")
-        mate = weighted_matching(graph)
-        my_match = {graph.get_edge(n1, n2) for n1, n2 in mate.items()}
-        my_val = sum([e.weight for e in my_match])
+        my_val = weighted_matching(graph)
         self.assertEqual(my_val, 44)
 
-
     def test_random_weights(self):
-        for n in [10,20,30,50,70,100]:
-            for r in [30,50,70]:
+        for n in [10, 20, 30, 50, 70, 100]:
+            for r in [30, 50, 100]:
                 self.assertTrue(random_weighted_matching(n, r))
 
-
-
-
+    def test_instance(self):
+        self.assertTrue(random_weighted_matching(0,0, "8_25_problem_mat.pkl"))
 
 
 if __name__ == '__main__':
