@@ -25,7 +25,8 @@ def min_spanning_tree(graph):
     return tree
 
 
-def shrink_blossom(graph, node1, node2, parent):
+
+def backtrack(graph, edge, inner, outer, mate):
     """
     :param graph:
         Graph object from My_Graph Module
@@ -41,50 +42,103 @@ def shrink_blossom(graph, node1, node2, parent):
         b_node = Node object representing blossom node
         b = List of blossom Nodes in APS cycle order
     """
-    cycle = set()
-    b1 = []
-    b2 = []
-    start1, start2 = node1, node2
-    while True:
-        if node1 is not None:
-            if node1 in cycle:
-                stem = node1
-                break
-            cycle.add(node1)
-            node1 = parent[node1]
+    print("backtracking: \n")
+    n1 = []
+    e1 = [edge]
+    n2 = []
+    e2 = []
+    node = graph.get_neighborhood(edge.from_node)
+    if node in inner:
+        n1.append(node)
+        e1.append(inner[node])
+        f_node = graph.get_neighborhood(inner[node].from_node)
+        t_node = graph.get_neighborhood(inner[node].to_node)
+        node = f_node if node is t_node else t_node
 
-        if node2 is not None:
-            if node2 in cycle:
-                stem = node2
-                break
-            cycle.add(node2)
-            node2 = parent[node2]
+    while outer[node]:
+        n1.append(node)
+        e1.append(outer[node])
+        f_node = graph.get_neighborhood(outer[node].from_node)
+        t_node = graph.get_neighborhood(outer[node].to_node)
+        node = f_node if node is t_node else t_node
+        n1.append(node)
+        e1.append(inner[node])
+        f_node = graph.get_neighborhood(inner[node].from_node)
+        t_node = graph.get_neighborhood(inner[node].to_node)
+        node = f_node if node is t_node else t_node
+    n1.append(node)
+    print(n1)
+    print(e1)
 
-    while start1 is not parent[stem]:
-        b1.append(start1)
-        start1 = parent[start1]
+    node = graph.get_neighborhood(edge.to_node)
+    if node in inner:
+        n2.append(node)
+        e2.append(inner[node])
+        f_node = graph.get_neighborhood(inner[node].from_node)
+        t_node = graph.get_neighborhood(inner[node].to_node)
+        node = f_node if node is t_node else t_node
 
-    while start2 is not stem:
-        b2.append(start2)
-        start2 = parent[start2]
+    while outer[node]:
+        n2.append(node)
+        e2.append(outer[node])
+        f_node = graph.get_neighborhood(outer[node].from_node)
+        t_node = graph.get_neighborhood(outer[node].to_node)
+        node = f_node if node is t_node else t_node
+        n2.append(node)
+        e2.append(inner[node])
+        f_node = graph.get_neighborhood(inner[node].from_node)
+        t_node = graph.get_neighborhood(inner[node].to_node)
+        node = f_node if node is t_node else t_node
+    n2.append(node)
+    print(n2)
+    print(e2)
 
-    b1.reverse()
-    cycle = b1 + b2
-    n_members = set()
-    b_members = set()
-    blossom_set_update(n_members, b_members, cycle)
-    b_node, neighbors = graph.add_blossom(cycle, n_members, b_members)
+    if n1[-1] == n2[-1]:
+        #blossom detected
+        print("shrinking \n")
+        i = -2
+        while n1[i] != n2[i]:
+            i -= 1
 
-    for node in neighbors:
-        if node in parent and parent[node] and not parent[node].is_alive():
-            parent[node] = b_node
+        n1 = n1[:i]
+        e1 = e1[:i]
+        n2 = n2[:i - 1]
+        e2 = e2[:i]
+        print(n1, e1)
+        print(n2, e2)
 
-    parent[b_node] = parent[stem]
-    return b_node
+        n1.reverse()
+        e1.reverse()
+        cycle = n1 + n2
+        e_cycle = e1 + e2
+        print(cycle, e_cycle)
+        b_node = graph.add_blossom(cycle, e_cycle)
+        print("\n new blossom:\n")
+        print(b_node)
+        print(b_node.edges)
+        print(b_node.members)
+        outer[b_node] = outer[cycle[0]]
+        if cycle[0] in mate:
+            mate[b_node] = mate[cycle[0]]
+            mate.pop(cycle[0])
+        print("done \n")
+        return b_node
+    print("augmenting\n")
+    n1.reverse()
+    e1.reverse()
+    p = n1 + n2
+    e = e1 + e2
+    print(p)
+    print(e)
+    for i in range(0, len(e), 2):
+        mate[p[i]] = e[i]
+        mate[p[i + 1]] = e[i]
+    print("****************\n")
+    return False
 
 
 
-def aps(graph, mate, root):
+def aps(graph, mate, roots):
     """
     :param graph:
         Graph object from My_Graph module
@@ -102,59 +156,63 @@ def aps(graph, mate, root):
 
     """
     visited = set()
-    inner = set()
-    outer = {root}
-    b_list = []
-    if root.is_blossom():
-        outer.update(root.cycle)
-    parent = {root: None}
-    q = deque([root])
+    inner = {}
+    outer = {root: None for root in roots}
+    q = deque(roots)
     while q:
         node1 = q.popleft()
         if not node1.is_alive() or node1 in visited:
             continue
         visited.add(node1)
-        for edge in node1.edges:
-            if edge.is_alive():
-                node2 = edge.from_node if node1 is edge.to_node else edge.to_node
-                if node2 not in mate and node2 not in parent:
-                    # found augmenting path
-                    parent[node2] = node1
-                    while node2 is not None:
-                        mate[node2] = parent[node2]
-                        mate[parent[node2]] = node2
-                        node2 = parent[parent[node2]]
-                    for i in range(len(b_list) - 1, -1, -1):
-                        graph.flower(b_list[i], mate)
-                    return None
-
-                elif node2 not in parent:
-                    parent[node2] = node1
-                    partner = mate[node2]
-                    parent[partner] = node2
-                    inner.add(node2)
-                    outer.add(partner)
-                    q.append(partner)
-
-                elif node2 in outer:
-                    # blossom detected
-                    b_node = shrink_blossom(graph, node1, node2, parent)
-                    b_list.append(b_node)
-                    outer.add(b_node)
-                    q.appendleft(b_node)
-                    if b_node.cycle[0] in mate:
-                        mate[b_node] = mate[b_node.cycle[0]]
-                        mate[mate[b_node.cycle[0]]] = b_node
-                        mate.pop(b_node.cycle[0])
-                    if not node1.is_alive():
+        if node1 in outer:
+            print(node1.edges)
+            for edge in node1.edges:
+                e_flag = edge is not mate[node1] if node1 in mate else True
+                if edge.is_alive() and e_flag:
+                    f_node = graph.get_neighborhood(edge.from_node)
+                    t_node = graph.get_neighborhood(edge.to_node)
+                    node2 = f_node if node1 is t_node else t_node
+                    if node2 in outer:
+                        print("outer")
+                        print(outer)
+                        print(inner)
+                        blossom = backtrack(graph, edge, inner, outer, mate)
+                        if not blossom:
+                            return False
+                        q.append(blossom)
                         break
+
+                    elif node2 not in inner:
+                        inner[node2] = edge
+                        q.append(node2)
+
+        if node1 in inner:
+            edge = mate[node1]
+            f_node = graph.get_neighborhood(edge.from_node)
+            t_node = graph.get_neighborhood(edge.to_node)
+            node2 = f_node if node1 is t_node else t_node
+            if node2 in inner:
+                print("inner")
+                print(outer)
+                print(inner)
+                blossom = backtrack(graph, edge, inner, outer, mate)
+                if not blossom:
+                    return False
+                q.append(blossom)
+
+            elif node2 not in outer:
+                outer[node2] = edge
+                q.append(node2)
+
     return inner, outer
+
 
 def blossom_set_update(node_set, blossom_set, update):
     for node in update:
         if node.is_blossom():
             blossom_set_update(node_set, blossom_set, node.cycle)
-            blossom_set.add(node)
+            if node.is_alive():
+                blossom_set.add(node)
         else:
             node_set.add(node)
 
@@ -173,27 +231,24 @@ def maximal_matching(graph, mate=None, expand=True):
     """
     if mate is None:
         mate = {}
-    outer_n= set()
+
+    outer_n = set()
     outer_b = set()
     inner_n = set()
     inner_b = set()
-    for root in graph.get_nodes():
-        if root.is_alive() and root not in mate:
-            # start augmenting path search (BFS format)
-            o = aps(graph, mate, root)
-            print(o)
-            if o:
-                blossom_set_update(inner_n, inner_b, o[0])
-                blossom_set_update(outer_n, outer_b, o[1])
+    maximal = False
+    while not maximal:
+        roots = [node for node in graph.nodes if node.is_alive() and node not in mate]
+        print(mate)
+        print(roots)
+        print("####################")
+        maximal = aps(graph, mate, roots)
         if expand:
-            graph.expand(mate)
+            graph.flower(mate)
 
-    inner_n.difference_update(outer_n)
-    inner_b.difference_update(outer_b)
-    inner_b = {b for b in inner_b if b.is_alive()}
-    outer_b = {b for b in outer_b if b.is_alive()}
+    #blossom_set_update(inner_n, inner_b, maximal[0])
+    #blossom_set_update(outer_n, outer_b, maximal[1])
     return mate, inner_n, inner_b, outer_n, outer_b
-
 
 
 def clean_matching(mate, valid):

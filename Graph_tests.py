@@ -158,9 +158,18 @@ class GraphMethods(unittest.TestCase):
 
 
 class MatchingMethods(unittest.TestCase):
+    def test_blossom(self):
+        graph = write_graph("Tests/blossom_test0.txt")
+        M = {}
+        for edge in graph.edges:
+            if edge.weight:
+                M[edge.to_node] = edge
+                M[edge.from_node] = edge
+        maximal_matching(graph, mate=M, expand=False)
+
 
     def test_aps(self):
-        graph = write_graph("Tests/Matching_test1.txt")
+        graph = write_graph("Tests/matching_test1.txt")
         mate, _, _, _, _ = maximal_matching(graph)
         matching = clean_matching(mate, lambda node: node.is_alive())
         self.assertEqual(len(matching), 6)

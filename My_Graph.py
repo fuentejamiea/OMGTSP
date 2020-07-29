@@ -31,14 +31,6 @@ class Node:
         self.edges[i] = self.edges[-1]
         self.edges.pop()
 
-    def get_neighbors(self):
-        neighbors = set()
-        for edge in self.edges:
-            if edge.is_alive():
-                ngh = edge.from_node if self is edge.to_node else edge.to_node
-                neighbors.add(ngh)
-        return neighbors
-
     def __str__(self):
         return "N({})".format(str(self.num))
 
@@ -47,24 +39,14 @@ class Node:
 
 
 class Blossom(Node):
-    def __init__(self, num, cycle, members):
+    def __init__(self, num, cycle, e_cycle, members):
         super(Blossom, self).__init__(num)
         self.cycle = cycle
+        self.e_cycle = e_cycle
         self.members = members
 
     def is_blossom(self):
         return True
-
-    def find_neighbor(self, node):
-        if node is self:
-            return None
-
-        for i in range(len(self.cycle)):
-            candidate = self.cycle[i]
-            e = candidate.get_edge(node)
-            if e and e.active:
-                return i, e
-        return None
 
     def __str__(self):
         return "B({})".format(self.num)
@@ -79,10 +61,9 @@ class Edge:
         self.to_node = to_node
         self.weight = weight
         self.alive = True
-        self.active = True
 
     def is_alive(self):
-        return self.alive and self.active
+        return self.alive
 
     def kill(self):
         self.alive = False
@@ -101,8 +82,8 @@ class Graph:
     def __init__(self):
         self.nodes = []
         self.edges = []
-        self.weighted_matching = False
         self.b_map = {}
+        self.e_map = {}
 
     def add_nodes(self, m):
         n = len(self.nodes)
@@ -114,37 +95,32 @@ class Graph:
         new_edge = Edge(from_node, to_node, weight)
         from_node.edges.append(new_edge)
         to_node.edges.append(new_edge)
-        if update:
-            # dont want to save dummy edges
-            self.edges.append(new_edge)
+        self.edges.append(new_edge)
         return new_edge
 
-    def add_blossom(self, cycle, n_members, b_members):
+    def add_blossom(self, cycle, e_cycle):
         n = len(self.nodes)
-        new_blossom = Blossom(n, cycle, n_members)
-        cycle = set(cycle)
+        new_blossom = Blossom(n, cycle, e_cycle, len(cycle))
         self.nodes.append(new_blossom)
-        neighbors = {}
-
-        for node in cycle:
-            self.b_map[node] = new_blossom
-            node.kill()
+        for node1 in cycle:
+            self.b_map[node1] = new_blossom
+            node1.kill()
 
         for node1 in cycle:
+            if node1.is_blossom():
+                new_blossom.members += node1.members - 1
             for edge in node1.edges:
-                edge.kill()
-                node2 = edge.from_node if node1 is edge.to_node else edge.to_node
-                if node2 not in n_members and node2 not in b_members:
-                    if node2 not in neighbors:
-                        e = self.add_edge(new_blossom, node2, 0, False)
-                        e.active = False
-                        neighbors[node2] = e
-                    if edge.active:
-                        neighbors[node2].active = True
+                f_node = self.get_neighborhood(edge.from_node)
+                t_node = self.get_neighborhood(edge.to_node)
+                node2 = f_node if self.get_neighborhood(node1) is t_node else t_node
+                if node2 is new_blossom:
+                    self.e_map[edge] = new_blossom
+                else:
+                    new_blossom.edges.append(edge)
 
-        return new_blossom, neighbors.keys()
+        return new_blossom
 
-    def flower(self, blossom, mate, recurse=False):
+    def flower(self, blossom, mate):
         self.nodes.remove(blossom)
 
         if blossom in mate:
@@ -172,8 +148,6 @@ class Graph:
         for node in blossom.cycle:
             self.b_map.pop(node)
             node.wake()
-            if node.is_blossom() and recurse:
-                self.flower(node, mate, True)
             for edge in node.edges:
                 edge.wake()
         for edge in blossom.edges:
@@ -201,15 +175,6 @@ class Graph:
         while node in self.b_map:
             node = self.b_map[node]
         return node
-
-    def get_neighborhood_list(self, node):
-        n = [node]
-        while node in self.b_map:
-            node = self.b_map[node]
-            n.append(node)
-        return n
-
-
 
     def get_node(self, num):
         if num < len(self.nodes):
