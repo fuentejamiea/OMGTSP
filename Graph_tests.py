@@ -6,6 +6,20 @@ import pickle
 import gurobipy
 import time
 
+def clean_matching(mate):
+    """
+    :param mate:
+        Matching in M[node] = e(node, node_mate)  format
+    :return:
+        Matching in {(node1,node2), (node3,node4)... ] format with tuples sorted in increasing order
+    """
+    matching = set()
+    for e in set(mate.values()):
+        if e.from_node.num < e.to_node.num:
+            matching.add((e.to_node.num, e.from_node.num))
+        else:
+            matching.add((e.from_node.num, e.to_node.num))
+    return matching
 
 def random_cardinality_matching(n, num, denom, pickle_path=""):
     """
@@ -54,8 +68,17 @@ def random_cardinality_matching(n, num, denom, pickle_path=""):
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
+
     mate, _, _, _, _ = maximal_matching(g1)
-    matching = clean_matching(mate, lambda node: node is not None)
+    """
+        try:
+            mate, _, _, _, _ = maximal_matching(g1)
+        except Exception as exp:
+            print(exp)
+            mate = {}
+    """
+
+    matching = clean_matching(mate)
     count1 = len(matching)
     matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
     count2 = len(matching)
@@ -160,18 +183,19 @@ class GraphMethods(unittest.TestCase):
 class MatchingMethods(unittest.TestCase):
     def test_blossom(self):
         graph = write_graph("Tests/blossom_test0.txt")
-        M = {}
+        mate = {}
         for edge in graph.edges:
             if edge.weight:
-                M[edge.to_node] = edge
-                M[edge.from_node] = edge
-        maximal_matching(graph, mate=M, expand=False)
-
+                mate[edge.to_node] = edge
+                mate[edge.from_node] = edge
+        mate, _, _, _, _ = maximal_matching(graph, mate=mate)
+        self.assertEqual(clean_matching(mate), {(1, 0), (4, 2), (5, 3), (7, 6), (9, 8),
+                                                (11, 10), (13, 12), (15, 14)})
 
     def test_aps(self):
         graph = write_graph("Tests/matching_test1.txt")
         mate, _, _, _, _ = maximal_matching(graph)
-        matching = clean_matching(mate, lambda node: node.is_alive())
+        matching = set(mate.values())
         self.assertEqual(len(matching), 6)
 
     def test_random_maximal(self):

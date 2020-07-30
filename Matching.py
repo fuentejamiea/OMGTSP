@@ -25,7 +25,6 @@ def min_spanning_tree(graph):
     return tree
 
 
-
 def backtrack(graph, edge, inner, outer, mate):
     """
     :param graph:
@@ -42,7 +41,6 @@ def backtrack(graph, edge, inner, outer, mate):
         b_node = Node object representing blossom node
         b = List of blossom Nodes in APS cycle order
     """
-    print("backtracking: \n")
     n1 = []
     e1 = [edge]
     n2 = []
@@ -67,8 +65,6 @@ def backtrack(graph, edge, inner, outer, mate):
         t_node = graph.get_neighborhood(inner[node].to_node)
         node = f_node if node is t_node else t_node
     n1.append(node)
-    print(n1)
-    print(e1)
 
     node = graph.get_neighborhood(edge.to_node)
     if node in inner:
@@ -90,52 +86,37 @@ def backtrack(graph, edge, inner, outer, mate):
         t_node = graph.get_neighborhood(inner[node].to_node)
         node = f_node if node is t_node else t_node
     n2.append(node)
-    print(n2)
-    print(e2)
 
-    if n1[-1] == n2[-1]:
-        #blossom detected
-        print("shrinking \n")
-        i = -2
-        while n1[i] != n2[i]:
-            i -= 1
+    if n1[-1] is n2[-1]:
+        i = 1
+        l1 = len(n1)
+        l2 = len(n2)
+        while n1[l1 - i] is n2[l2 - i]:
+            i += 1
 
-        n1 = n1[:i]
-        e1 = e1[:i]
-        n2 = n2[:i - 1]
-        e2 = e2[:i]
-        print(n1, e1)
-        print(n2, e2)
+        n1 = n1[:l1 - i + 2]
+        e1 = e1[:l1 - i + 2]
+        n2 = n2[:l2 - i + 1]
+        e2 = e2[:l2 - i + 1]
 
         n1.reverse()
         e1.reverse()
         cycle = n1 + n2
         e_cycle = e1 + e2
-        print(cycle, e_cycle)
         b_node = graph.add_blossom(cycle, e_cycle)
-        print("\n new blossom:\n")
-        print(b_node)
-        print(b_node.edges)
-        print(b_node.members)
         outer[b_node] = outer[cycle[0]]
         if cycle[0] in mate:
             mate[b_node] = mate[cycle[0]]
             mate.pop(cycle[0])
-        print("done \n")
         return b_node
-    print("augmenting\n")
     n1.reverse()
     e1.reverse()
     p = n1 + n2
     e = e1 + e2
-    print(p)
-    print(e)
     for i in range(0, len(e), 2):
         mate[p[i]] = e[i]
         mate[p[i + 1]] = e[i]
-    print("****************\n")
     return False
-
 
 
 def aps(graph, mate, roots):
@@ -165,7 +146,6 @@ def aps(graph, mate, roots):
             continue
         visited.add(node1)
         if node1 in outer:
-            print(node1.edges)
             for edge in node1.edges:
                 e_flag = edge is not mate[node1] if node1 in mate else True
                 if edge.is_alive() and e_flag:
@@ -173,9 +153,6 @@ def aps(graph, mate, roots):
                     t_node = graph.get_neighborhood(edge.to_node)
                     node2 = f_node if node1 is t_node else t_node
                     if node2 in outer:
-                        print("outer")
-                        print(outer)
-                        print(inner)
                         blossom = backtrack(graph, edge, inner, outer, mate)
                         if not blossom:
                             return False
@@ -192,9 +169,6 @@ def aps(graph, mate, roots):
             t_node = graph.get_neighborhood(edge.to_node)
             node2 = f_node if node1 is t_node else t_node
             if node2 in inner:
-                print("inner")
-                print(outer)
-                print(inner)
                 blossom = backtrack(graph, edge, inner, outer, mate)
                 if not blossom:
                     return False
@@ -239,9 +213,6 @@ def maximal_matching(graph, mate=None, expand=True):
     maximal = False
     while not maximal:
         roots = [node for node in graph.nodes if node.is_alive() and node not in mate]
-        print(mate)
-        print(roots)
-        print("####################")
         maximal = aps(graph, mate, roots)
         if expand:
             graph.flower(mate)
@@ -249,25 +220,6 @@ def maximal_matching(graph, mate=None, expand=True):
     #blossom_set_update(inner_n, inner_b, maximal[0])
     #blossom_set_update(outer_n, outer_b, maximal[1])
     return mate, inner_n, inner_b, outer_n, outer_b
-
-
-def clean_matching(mate, valid):
-    """
-    :param mate:
-        Matching in M[node] = mate format
-    :param valid:
-        Function to determine if Node is valid for given matching
-    :return:
-        Matching in {(node1,node2), (node3,node4)... ] format
-    """
-    matching = set()
-    for node1, node2 in mate.items():
-        if valid(node1) and valid(node2):
-            if node2.num > node1.num:
-                matching.add((node2.num, node1.num))
-            else:
-                matching.add((node1.num, node2.num))
-    return matching
 
 
 def weighted_matching(graph):

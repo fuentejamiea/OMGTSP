@@ -1,3 +1,5 @@
+from collections import deque
+
 class Node:
     def __init__(self, num):
         self.edges = []
@@ -41,8 +43,8 @@ class Node:
 class Blossom(Node):
     def __init__(self, num, cycle, e_cycle, members):
         super(Blossom, self).__init__(num)
-        self.cycle = cycle
-        self.e_cycle = e_cycle
+        self.cycle = deque(cycle)
+        self.e_cycle = deque(e_cycle)
         self.members = members
 
     def is_blossom(self):
@@ -120,43 +122,13 @@ class Graph:
 
         return new_blossom
 
-    def flower(self, blossom, mate):
-        self.nodes.remove(blossom)
+    def flower(self, mate):
+        blossom = self.nodes[-1]
+        while blossom.is_blossom():
+            self.expand(blossom, mate)
+            blossom = self.nodes[-1]
 
-        if blossom in mate:
-            b_mate = mate[blossom]
-            ret = blossom.find_neighbor(b_mate)
-            if not ret:
-                print(blossom, b_mate)
-                print(blossom.cycle)
-                print([edge for edge in b_mate.edges if edge.active])
-                print([edge for edge in b_mate.edges if not edge.active])
-            i = ret[0]
-            mate[b_mate] = blossom.cycle[i]
-            mate.pop(blossom)
-            half1 = blossom.cycle[:i]
-            half2 = blossom.cycle[i:]
-            blossom.cycle = half2 + half1
-            mate[blossom.cycle[0]] = b_mate
-        elif blossom.cycle[0] in mate:
-            mate.pop(blossom.cycle[0])
-
-        for k in range(1, len(blossom.cycle), 2):
-            mate[blossom.cycle[k]] = blossom.cycle[k + 1]
-            mate[blossom.cycle[k + 1]] = blossom.cycle[k]
-
-        for node in blossom.cycle:
-            self.b_map.pop(node)
-            node.wake()
-            for edge in node.edges:
-                edge.wake()
-        for edge in blossom.edges:
-            neighbor = edge.to_node if edge.to_node is not blossom else edge.from_node
-            neighbor.pop_edge(edge)
-
-        return blossom
-
-    def expand(self, mate):
+    def expand(self, blossom, mate):
         """
         :param mate:
             Matching return from maximal matching on Graph
@@ -164,12 +136,45 @@ class Graph:
         :return:
             None
         """
-        b = []
-        blossom = self.nodes[-1]
-        while blossom.is_blossom():
-            b.append(self.flower(blossom, mate))
-            blossom = self.nodes[-1]
-        return b
+        if blossom in mate:
+            e = mate[blossom]
+            cycle = set(blossom.cycle)
+            if self.get_neighborhood(e.to_node) is blossom:
+                in_node = e.to_node
+                out_node = e.from_node
+            else:
+                in_node = e.from_node
+                out_node = e.to_node
+
+            while in_node not in cycle:
+                in_node = self.b_map[in_node]
+
+            while blossom.cycle[0] is not in_node:
+                blossom.cycle.rotate(1)
+                blossom.e_cycle.rotate(1)
+
+            blossom.e_cycle = list(blossom.e_cycle)
+
+            for node in blossom.cycle:
+                self.b_map.pop(node)
+                node.wake()
+
+            for k in range(1, len(blossom.e_cycle), 2):
+                mate[self.get_neighborhood(blossom.e_cycle[k].to_node)] = blossom.e_cycle[k]
+                mate[self.get_neighborhood(blossom.e_cycle[k].from_node)] = blossom.e_cycle[k]
+            mate[in_node] = mate[blossom]
+            mate.pop(blossom)
+
+        else:
+            for node in blossom.cycle:
+                self.b_map.pop(node)
+                node.wake()
+
+
+        blossom.kill()
+        self.nodes.pop(blossom.num)
+        return blossom
+
 
     def get_neighborhood(self, node):
         while node in self.b_map:
