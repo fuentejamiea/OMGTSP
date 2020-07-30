@@ -4,7 +4,6 @@ from Matching import *
 import numpy as np
 import pickle
 import gurobipy
-import time
 
 def clean_matching(mate):
     """
@@ -58,26 +57,17 @@ def random_cardinality_matching(n, num, denom, pickle_path=""):
             if mat[i][j] >= cutoff:
                 n1 = g1.get_node(i)
                 n2 = g1.get_node(j)
-                n1.val += 1
-                n2.val += 1
                 g1.add_edge(n1, n2, 0)
                 new_var = model.addVar(obj=-1, vtype=gurobipy.GRB.BINARY, name="({},{})".format(i, j))
                 model.update()
                 con_map[i].add(new_var)
                 con_map[j].add(new_var)
+
     for nd, const in con_map.items():
         model.addConstr(gurobipy.quicksum(const) <= 1)
     model.update()
 
-    mate, _, _, _, _ = maximal_matching(g1)
-    """
-        try:
-            mate, _, _, _, _ = maximal_matching(g1)
-        except Exception as exp:
-            print(exp)
-            mate = {}
-    """
-
+    mate, _, _,  = maximal_matching(g1)
     matching = clean_matching(mate)
     count1 = len(matching)
     matching = {m for m in matching if mat[m[0]][m[1]] >= cutoff}
@@ -188,13 +178,13 @@ class MatchingMethods(unittest.TestCase):
             if edge.weight:
                 mate[edge.to_node] = edge
                 mate[edge.from_node] = edge
-        mate, _, _, _, _ = maximal_matching(graph, mate=mate)
+        mate, _, _ = maximal_matching(graph, mate=mate)
         self.assertEqual(clean_matching(mate), {(1, 0), (4, 2), (5, 3), (7, 6), (9, 8),
                                                 (11, 10), (13, 12), (15, 14)})
 
     def test_aps(self):
         graph = write_graph("Tests/matching_test1.txt")
-        mate, _, _, _, _ = maximal_matching(graph)
+        mate, _, _ = maximal_matching(graph)
         matching = set(mate.values())
         self.assertEqual(len(matching), 6)
 
@@ -209,12 +199,12 @@ class MatchingMethods(unittest.TestCase):
         self.assertEqual(my_val, 44)
 
     def test_random_weights(self):
-        for n in [10, 20, 30, 50, 70, 100]:
+        for n in [10, 20, 50, 80, 100]:
             for r in [30, 50, 100]:
                 self.assertTrue(random_weighted_matching(n, r))
 
     def test_instance(self):
-        self.assertTrue(random_weighted_matching(0,0,"70_30_problem_mat.pkl"))
+        self.assertTrue(random_weighted_matching(0,0,"10_50_problem_mat.pkl"))
 
 
 if __name__ == '__main__':

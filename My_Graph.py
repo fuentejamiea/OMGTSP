@@ -85,7 +85,6 @@ class Graph:
         self.nodes = []
         self.edges = []
         self.b_map = {}
-        self.e_map = {}
 
     def add_nodes(self, m):
         n = len(self.nodes)
@@ -100,12 +99,13 @@ class Graph:
         self.edges.append(new_edge)
         return new_edge
 
-    def add_blossom(self, cycle, e_cycle):
+    def add_blossom(self, cycle, e_cycle, inner):
         n = len(self.nodes)
         new_blossom = Blossom(n, cycle, e_cycle, len(cycle))
         self.nodes.append(new_blossom)
         for node1 in cycle:
             self.b_map[node1] = new_blossom
+            inner.pop(node1, None)
             node1.kill()
 
         for node1 in cycle:
@@ -115,9 +115,7 @@ class Graph:
                 f_node = self.get_neighborhood(edge.from_node)
                 t_node = self.get_neighborhood(edge.to_node)
                 node2 = f_node if self.get_neighborhood(node1) is t_node else t_node
-                if node2 is new_blossom:
-                    self.e_map[edge] = new_blossom
-                else:
+                if node2 is not new_blossom:
                     new_blossom.edges.append(edge)
 
         return new_blossom
@@ -170,9 +168,8 @@ class Graph:
                 self.b_map.pop(node)
                 node.wake()
 
-
         blossom.kill()
-        self.nodes.pop(blossom.num)
+        self.nodes.remove(blossom)
         return blossom
 
 
@@ -180,6 +177,29 @@ class Graph:
         while node in self.b_map:
             node = self.b_map[node]
         return node
+
+    def get_edge_val(self, node1, node2):
+        if node1 not in self.b_map or node2 not in self.b_map:
+            return 0
+        n1 = []
+        n2 = []
+        while node1 in self.b_map:
+            n1.append(node1)
+            node1 = self.b_map[node1]
+
+        while node2 in self.b_map:
+            n2.append(node2)
+            node2 = self.b_map[node2]
+
+        if n1[-1] != n2[-1]:
+            return 0
+        i = 1
+        l1 = len(n1)
+        l2 = len(n2)
+        while n1[l1 - i] is n2[l2 - i]:
+            i += 1
+        return sum([n.val for n in n1[:l1 - i + 2]])
+
 
     def get_node(self, num):
         if num < len(self.nodes):
