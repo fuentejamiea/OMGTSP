@@ -110,6 +110,7 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
     con_map = {i: set() for i in range(n)}
 
 
+
     for i in range(n):
         if not pickle_path:
             new_row = np.random.randint(1, rand_range, i)
@@ -129,7 +130,12 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
     model.update()
     model.optimize()
     opt_val = model.getObjective().getValue()
-    my_val = weighted_matching(g1)
+
+    try:
+        my_val = weighted_matching(g1)
+    except:
+        print("ERRROORRRRR")
+        my_val = -2
 
     opt_flag = opt_val == my_val
 
@@ -200,11 +206,11 @@ class MatchingMethods(unittest.TestCase):
 
     def test_random_weights(self):
         for n in [10, 20, 50, 80, 100]:
-            for r in [30, 50, 100]:
+            for r in [20, 50, 100]:
                 self.assertTrue(random_weighted_matching(n, r))
 
     def test_instance(self):
-        self.assertTrue(random_weighted_matching(0,0,"10_50_problem_mat.pkl"))
+        self.assertTrue(random_weighted_matching(0,0,"100_30_problem_mat.pkl"))
 
 
 if __name__ == '__main__':

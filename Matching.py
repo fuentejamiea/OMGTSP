@@ -116,6 +116,7 @@ def backtrack(graph, edge, inner, outer, mate):
     for i in range(0, len(e), 2):
         mate[p[i]] = e[i]
         mate[p[i + 1]] = e[i]
+    print("agu p:", p)
     return False
 
 
@@ -203,13 +204,22 @@ def maximal_matching(graph, mate=None, expand=True):
         mate: Maximal cardinality matching on Graph by Blossom algorithm
         b_list: list of (b_node, blossom) pairs. blossom is a list of Nodes
     """
+    print("############matching###########")
     if mate is None:
         mate = {}
+    n = len(graph.nodes)
+    print("edges:", [e for e in graph.edges if e.is_alive()])
 
     maximal = False
     while not maximal:
         roots = [node for node in graph.nodes if node.is_alive() and node not in mate]
+        print("mate:", set(mate.values()))
+        print([(b, b.cycle) for b in graph.nodes[n:]])
+        print("roots:", roots)
         maximal = aps(graph, mate, roots)
+        if maximal:
+            print("inner:", maximal[0])
+            print("outer:", maximal[1])
         if expand:
             graph.flower(mate)
 
@@ -225,10 +235,9 @@ def weighted_matching(graph):
     n = len(graph.nodes)
     mate = {}
     k = 0
+    print("nodes:",[(n, n.val) for n in graph.nodes])
 
     while len(mate) < n:
-        print("############round:{}###########".format(str(k)))
-        k += 1
         for edge in graph.edges:
             n1 = edge.to_node
             n2 = edge.from_node
@@ -264,25 +273,16 @@ def weighted_matching(graph):
                 delta2 = min(delta2, e.weight - n1.val - n2.val)
 
         for node in inner_b:
-            if node.val != 0:
-                delta3 = min(delta3, -node.val/2)
+            delta3 = min(delta3, -node.val/2)
         delta = min(delta1, delta2, delta3)
-
-        print("inner_b", inner_b)
-        print("outer_b", outer_b)
-        print("inner_n", inner_n)
-        print("outer_n", outer_n)
-        print([(b, b.cycle) for b in graph.nodes[n:]])
-        print(delta1, delta2, delta3)
-
-        if delta <= 0:
-            return -1
 
         for node in inner_n:
             node.val -= delta
 
         for node in outer_n:
             node.val += delta
+        print("############round:{}###########".format(str(k)))
+        print("blossoms:",[(b, b.cycle) for b in graph.nodes[n:]])
 
         j = -1
         blossom = graph.nodes[j]
@@ -300,12 +300,24 @@ def weighted_matching(graph):
 
         s1 = sum([nodes.val for nodes in graph.nodes[:n]])
         s2 = sum([b.val * ((b.members - 1)/2) for b in graph.nodes[n:]])
+        k += 1
+        print("blossoms:",[(b, b.cycle) for b in graph.nodes[n:]])
+        print(len(mate), set(mate.values()))
+        print("unmatched:",[n for n in graph.nodes if n not in mate])
+        print("inner_b", inner_b)
+        print("outer_b", outer_b)
+        print("inner_n", inner_n)
+        print("outer_n", outer_n)
+        print(delta1,delta2,delta3)
         print([(node, node.val) for node in graph.nodes])
         print("obj:",s1 + s2)
         print("matching weight:", sum([e.weight for e in mate.values()])/2)
+    print("***********expand*************")
     graph.flower(mate)
+
     print("matching weight:", sum([e.weight for e in mate.values()]) / 2)
-    return sum([e.weight for e in mate.values()])/2
+    print(set(mate.values()))
+    return s1 + s2
 
 
 def christofides(g):
