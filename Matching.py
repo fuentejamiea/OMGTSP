@@ -59,7 +59,7 @@ class Matching(Graph):
         self.nodes.append(new_blossom)
 
         for node1 in cycle:
-            inner.pop(node1,None)
+            inner.pop(node1, None)
             self.b_map[node1] = new_blossom
             node1.kill()
 
@@ -156,6 +156,7 @@ class Matching(Graph):
         e1 = [edge]
         n2 = []
         e2 = []
+
         node = self.get_neighborhood(edge.from_node)
         if node in inner:
             # shift one node over to start with outer
@@ -204,7 +205,7 @@ class Matching(Graph):
         n2.append(node)
 
         if n1[-1] is n2[-1]:
-            #blossom detected
+            # blossom detected
             i = 1
             l1 = len(n1)
             l2 = len(n2)

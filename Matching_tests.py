@@ -139,13 +139,13 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
 
 class MatchingMethods(unittest.TestCase):
     def test_aps(self):
-        graph = Matching("Tests/matching_test1.txt")
+        graph = Matching("tests/matching_test1.txt")
         mate, _, _ = graph.maximal_matching()
         matching = set(mate.values())
         self.assertEqual(len(matching), 6)
 
     def test_blossom(self):
-        graph = Matching("Tests/blossom_test0.txt")
+        graph = Matching("tests/blossom_test0.txt")
         mate = {}
         for edge in graph.edges:
             if edge.weight:
@@ -156,7 +156,7 @@ class MatchingMethods(unittest.TestCase):
                                                 (11, 10), (13, 12), (15, 14)})
 
     def test_weighted_matching(self):
-        graph = Matching("Tests/weighted_matching.txt")
+        graph = Matching("tests/weighted_matching.txt")
         _, my_val = graph.weighted_matching()
         self.assertEqual(my_val, 44)
 
