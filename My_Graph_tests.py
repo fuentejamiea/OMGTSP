@@ -34,7 +34,8 @@ class GraphMethods(unittest.TestCase):
 
     def test_graph(self):
         friends = Graph()
-        alexis, carina, jamie = friends.add_nodes(3)
+        friends.add_nodes(3)
+        alexis, carina, jamie = friends.nodes
         ship1 = friends.add_edge(alexis, carina, 10)
         ship3 = friends.add_edge(alexis, jamie, 30)
         ship2 = friends.add_edge(jamie, carina, 20)

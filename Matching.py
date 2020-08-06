@@ -2,27 +2,6 @@ from My_Graph import *
 from collections import deque
 
 
-def blossom_set_partition(update):
-    """
-    :param update:
-        set containing Nodes and Blossoms
-    :return:
-        set partitioned into set of nodes and set of blossoms, recurses to add sub_nodes of blossom
-    """
-    blossom_set = set()
-    node_set = set()
-    q = deque(update)
-    while q:
-        node = q.pop()
-        if node.is_blossom():
-            q.extend(node.cycle)
-            if node.is_alive():
-                blossom_set.add(node)
-        else:
-            node_set.add(node)
-    return node_set, blossom_set
-
-
 class Blossom(Node):
     def __init__(self, num, cycle, e_cycle, members):
         super(Blossom, self).__init__(num)
@@ -51,6 +30,8 @@ class Matching(Graph):
             list of Nodes in blossom in cycle
         :param e_cycle:
             list of cycle edges in order
+        :param inner:
+            dict mapping inner nodes to edge
         :return:
             Blossom added to graph
         """
@@ -72,7 +53,7 @@ class Matching(Graph):
                 node2 = f_node if self.get_neighborhood(node1) is t_node else t_node
                 if node2 is not new_blossom:
                     # add edge to blossom only if it leads out of blossom
-                    new_blossom.edges.append(edge)
+                    new_blossom.edges.add(edge)
 
         return new_blossom
 
@@ -344,6 +325,27 @@ class Matching(Graph):
             i += 1
         return sum([n.val for n in n1[:l1 - i + 2]])
 
+    @staticmethod
+    def blossom_set_partition(update):
+        """
+        :param update:
+            set containing Nodes and Blossoms
+        :return:
+            set partitioned into set of nodes and set of blossoms, recurses to add sub_nodes of blossom
+        """
+        blossom_set = set()
+        node_set = set()
+        q = deque(update)
+        while q:
+            node = q.pop()
+            if node.is_blossom():
+                q.extend(node.cycle)
+                if node.is_alive():
+                    blossom_set.add(node)
+            else:
+                node_set.add(node)
+        return node_set, blossom_set
+
     def weighted_matching(self):
         """
         :return:
@@ -374,8 +376,8 @@ class Matching(Graph):
             if len(mate) == n:
                 break
             # separate Nodes from alive blossoms
-            inner_n, inner_b = blossom_set_partition(inner)
-            outer_n, outer_b = blossom_set_partition(outer)
+            inner_n, inner_b = self.blossom_set_partition(inner)
+            outer_n, outer_b = self.blossom_set_partition(outer)
 
             delta1 = delta2 = delta3 = float('inf')
 
@@ -420,4 +422,4 @@ class Matching(Graph):
         s1 = sum([nodes.val for nodes in self.nodes[:n]])
         s2 = sum([b.val * ((b.members - 1)/2) for b in self.nodes[n:]])
         self.flower(mate)
-        return mate, s1 + s2
+        return set(mate.values()), s1 + s2

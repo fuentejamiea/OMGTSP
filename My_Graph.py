@@ -1,6 +1,6 @@
 class Node:
     def __init__(self, num):
-        self.edges = []
+        self.edges = set()
         self.num = num
         self.val = 0
         self.alive = True
@@ -38,9 +38,9 @@ class Node:
         :return:
             None, edits node's edge list
         """
-        i = self.edges.index(e)
-        self.edges[i] = self.edges[-1]
-        self.edges.pop()
+        #i = self.edges.index(e)
+        #self.edges[i] = self.edges[-1]
+        self.edges.remove(e)
 
     def __le__(self, other):
         return NotImplemented
@@ -125,9 +125,14 @@ class Graph:
         :return:
             new edge object
         """
+        if isinstance(from_node, int):
+            from_node = self.nodes[from_node]
+        if isinstance(to_node, int):
+            to_node = self.nodes[to_node]
+
         new_edge = Edge(from_node, to_node, weight)
-        from_node.edges.append(new_edge)
-        to_node.edges.append(new_edge)
+        from_node.edges.add(new_edge)
+        to_node.edges.add(new_edge)
         self.edges.append(new_edge)
         return new_edge
 
@@ -138,6 +143,11 @@ class Graph:
             return None
 
     def get_edge(self, from_node, to_node):
+        if isinstance(from_node, int):
+            from_node = self.nodes[from_node]
+        if isinstance(to_node, int):
+            to_node = self.nodes[to_node]
+
         if len(from_node.edges) < len(to_node.edges):
             return from_node.get_edge(to_node)
         else:
