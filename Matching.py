@@ -359,8 +359,9 @@ class Matching(Graph):
 
         n = len(self.nodes)
         mate = {}
-
+        k = 0
         while True:
+            k += 1
             for edge in self.edges:
                 n1 = edge.to_node
                 n2 = edge.from_node
@@ -378,7 +379,6 @@ class Matching(Graph):
             # separate Nodes from alive blossoms
             inner_n, inner_b = self.blossom_set_partition(inner)
             outer_n, outer_b = self.blossom_set_partition(outer)
-
             delta1 = delta2 = delta3 = float('inf')
 
             # dual variable updates

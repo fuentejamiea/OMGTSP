@@ -65,6 +65,11 @@ def eulerian_tour(graph):
         else:
             circuit.append(path.pop())
 
+    for edge in graph.edges:
+        edge.from_node.edges.add(edge)
+        edge.to_node.edges.add(edge)
+
+    circuit.pop()
     return circuit
 
 
@@ -115,7 +120,6 @@ def christofides(graph):
         euler.add_edge(node1, node2, edge.weight)
 
     tour = eulerian_tour(euler)
-    tour.pop()
     node_count = {}
     for i in range(len(tour)):
         node = tour[i]
@@ -131,15 +135,15 @@ def christofides(graph):
         best_index = -1
         short_val = float('inf')
         for index in node_count[node]:
-            e1 = graph.get_edge(tour[index - 1].num, node.num)
+            e1 = euler.get_edge(tour[index - 1].num, node.num)
             next_dex = index + 1 if index + 1 < l else 0
-            e2 = graph.get_edge(node.num, tour[next_dex].num)
+            e2 = euler.get_edge(node.num, tour[next_dex].num)
             tour_weight = e1.weight + e2.weight
-            shortcut = graph.get_edge(tour[index - 1].num, tour[next_dex].num).weight
-
-            if tour_weight - shortcut < short_val:
-                short_val = tour_weight - shortcut
+            shortcut = tour_weight - graph.get_edge(tour[index - 1].num, tour[next_dex].num).weight
+            if shortcut < short_val:
+                short_val = shortcut
                 best_index = index
+
         node_index[node] = best_index
 
     ham_cycle = []
@@ -151,13 +155,13 @@ def christofides(graph):
         else:
             ham_cycle.append(node)
 
-    print(len(set(ham_cycle)))
     weight = 0
     for i in range(len(ham_cycle)):
         edge = graph.get_edge(ham_cycle[i - 1].num, ham_cycle[i].num)
         weight += edge.weight
 
-    print(weight)
+
+    return ham_cycle, weight
 
 
 
