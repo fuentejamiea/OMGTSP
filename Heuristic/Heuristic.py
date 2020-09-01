@@ -1,5 +1,6 @@
-import Matching
-import My_Graph
+from Heuristic import Matching
+from Graph import My_Graph
+
 
 def min_spanning_tree(graph):
     """
