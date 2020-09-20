@@ -1,5 +1,6 @@
 from Heuristic import Matching
 from Graph import My_Graph
+from collections import defaultdict
 
 
 def min_spanning_tree(graph):
@@ -50,21 +51,21 @@ def eulerian_tour(graph):
         Eulerian tour via Hierholzer's algorithm
     """
 
-    path = [graph.nodes[0]]
+    path = [(graph.nodes[0], None)]
 
     circuit = []
 
     while path:
 
-        cur_node = path[-1]
+        cur_node = path[-1][0]
 
         if cur_node.edges:
             edge = cur_node.edges.pop()
             neighbor = edge.to_node if edge.from_node is cur_node else edge.from_node
             neighbor.edges.remove(edge)
-            path.append(neighbor)
+            path.append((neighbor, edge))
         else:
-            circuit.append(path.pop())
+            circuit.append(path.pop()[1])
 
     for edge in graph.edges:
         edge.from_node.edges.add(edge)
@@ -106,82 +107,39 @@ def christofides(graph):
         if odd_degree[edge.from_node.num] and odd_degree[edge.to_node.num]:
             node_num1 = graph_to_match[edge.from_node.num]
             node_num2 = graph_to_match[edge.to_node.num]
-            match.add_edge(node_num1, node_num2, edge.weight)
+            m_edge = match.add_edge(node_num1, node_num2, edge.weight)
+            m_edge.num = edge.num
 
     mate, match_weight = match.weighted_matching()
     euler = My_Graph.Graph()
     euler.add_nodes(n)
     for edge in mate:
-        euler.add_edge(match_to_graph[edge.from_node.num],
+        e_edge = euler.add_edge(match_to_graph[edge.from_node.num],
                        match_to_graph[edge.to_node.num], edge.weight)
+        e_edge.num = edge.num
 
     for edge in tree:
         node1 = euler.nodes[edge.from_node.num]
         node2 = euler.nodes[edge.to_node.num]
-        euler.add_edge(node1, node2, edge.weight)
+        e_edge = euler.add_edge(node1, node2, edge.weight)
+        e_edge.num = edge.num
 
     tour = eulerian_tour(euler)
-    node_count = {}
-    for i in range(len(tour)):
-        node = tour[i]
-        if node in node_count:
-            node_count[node].add(i)
+    ham_tour = []
+    cur_node = euler.nodes[0]
+    visited = set()
+    i = 0
+    while len(ham_tour) < n:
+        next_node = tour[i].from_node if tour[i].to_node is cur_node else tour[i].to_node
+        if next_node in visited:
+            while next_node in visited:
+                i += 1
+                next_node = tour[i].from_node if tour[i].to_node is next_node else tour[i].to_node
+            ham_tour.append(graph.get_edge(cur_node.num, next_node.num))
         else:
-            node_count[node] = {i}
+            ham_tour.append(graph.edges[tour[i].num])
+        visited.add(next_node)
+        cur_node = next_node
+        i += 1
 
-    node_count = {n: c for n, c in node_count.items() if len(c) > 1}
-    node_index = {}
-    l = len(tour)
-    for node in node_count:
-        best_index = -1
-        short_val = float('inf')
-        for index in node_count[node]:
-            e1 = euler.get_edge(tour[index - 1].num, node.num)
-            next_dex = index + 1 if index + 1 < l else 0
-            e2 = euler.get_edge(node.num, tour[next_dex].num)
-            tour_weight = e1.weight + e2.weight
-            shortcut = tour_weight - graph.get_edge(tour[index - 1].num, tour[next_dex].num).weight
-            if shortcut < short_val:
-                short_val = shortcut
-                best_index = index
-
-        node_index[node] = best_index
-
-    ham_cycle = []
-    for i in range(len(tour)):
-        node = tour[i]
-        if node in node_index:
-            if node_index[node] == i:
-                ham_cycle.append(node)
-        else:
-            ham_cycle.append(node)
-
-    weight = 0
-    for i in range(len(ham_cycle)):
-        edge = graph.get_edge(ham_cycle[i - 1].num, ham_cycle[i].num)
-        weight += edge.weight
-
-
-    return ham_cycle, weight
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return ham_tour

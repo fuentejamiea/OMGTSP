@@ -139,11 +139,6 @@ def random_weighted_matching(n, rand_range, pickle_path=""):
 
 
 class MatchingMethods(unittest.TestCase):
-    def wtf(self):
-        print("******")
-        print(os.getcwd())
-        print("******")
-
     def test_aps(self):
         graph = Matching("/Users/jamesfuente/PycharmProject/OMGTSP/Heuristic/tests/instances/matching_test1.txt")
         mate, _, _ = graph.maximal_matching()

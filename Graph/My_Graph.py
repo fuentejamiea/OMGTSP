@@ -62,11 +62,12 @@ class Node:
 
 
 class Edge:
-    def __init__(self, from_node, to_node, weight):
+    def __init__(self, from_node, to_node, weight, num):
         self.from_node = from_node
         self.to_node = to_node
         self.weight = weight
         self.alive = True
+        self.num = num
 
     def is_alive(self):
         return self.alive
@@ -130,7 +131,7 @@ class Graph:
         if isinstance(to_node, int):
             to_node = self.nodes[to_node]
 
-        new_edge = Edge(from_node, to_node, weight)
+        new_edge = Edge(from_node, to_node, weight, len(self.edges))
         from_node.edges.add(new_edge)
         to_node.edges.add(new_edge)
         self.edges.append(new_edge)

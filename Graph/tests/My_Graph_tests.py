@@ -28,7 +28,7 @@ class GraphMethods(unittest.TestCase):
     def test_edge(self):
         jamie = Node(1)
         carina = Node(2)
-        friendship = Edge(jamie, carina, 100000)
+        friendship = Edge(jamie, carina, 100000, 0)
 
         self.assertEqual(str(friendship), "(N(1)-(100000)-N(2))")
 

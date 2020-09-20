@@ -1,6 +1,6 @@
 import unittest
 from collections import Counter
-from Heuristic.Heuristic import *
+from Heuristic.Christofides import *
 from Graph.My_Graph import *
 
 
@@ -14,13 +14,18 @@ class HeuristicMethods(unittest.TestCase):
     def test_euler(self):
         graph = Graph("instances/Euler_test.txt")
         tour = eulerian_tour(graph)
-        count = Counter(tour)
-        for node in graph.nodes:
-            self.assertEqual(count[node], len(node.edges)/2)
+        self.assertEqual(len(set(tour)), len(graph.edges))
 
     def test_christofides(self):
         graph = Graph("../../instances/ulysses22.txt")
-        tour, weight = christofides(graph)
-        print(tour)
-        self.assertEqual(set(node.num for node in tour), set(range(len(graph.nodes))))
+        tour = christofides(graph)
+        cnt = [0]*len(graph.nodes)
+        self.assertEqual(len(graph.nodes), len(tour))
+        for e in tour:
+            cnt[e.from_node.num] += 1
+            cnt[e.to_node.num] += 1
+        for num in cnt:
+            self.assertEqual(2, num)
+
+
 
