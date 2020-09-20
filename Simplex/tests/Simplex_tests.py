@@ -30,7 +30,7 @@ def test_instance():
 
 
 
-#test_instance()
+test_instance()
 
 z = np.array([1, 1, 1, 1, 1])
 A = np.array([[3, 2, 1, 0, 0],
@@ -52,6 +52,6 @@ ratio = z[entering]/x[entering]
 #print(z - (x * ratio))
 
 
-test_model = My_Model.MyModel(3, 5, obj=np.ones(5),rhs=np.array([1, 3, 4]), A=A)
-test_model.compute_bfs()
+#test_model = My_Model.MyModel(3, 5, obj=np.ones(5),rhs=np.array([1, 3, 4]), A=A)
+#test_model.compute_bfs()
 

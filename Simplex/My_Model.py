@@ -43,20 +43,19 @@ class MyModel:
             z = np.linalg.solve(B.T, e)
             e[leaving] = 0
 
-            x = y @ (self.A)
+            x = z @ (self.A)
             ratio = d_n[entering] / x[entering]
             d_n = d_n - (x * ratio)
             d_n[entering] = -ratio * y @ B[:, leaving]
             print(iter, entering, leaving)
             hold = B[:, leaving]
             B[:, leaving] = self.A[:, entering]
-            self.A[:,entering] = hold
+            self.A[:, entering] = hold
             entering = np.argmin(d_n)
-            print(d_n[entering])
             print(d_n)
             iter += 1
 
-        print(B)
+        print(B@x_b)
 
 
 
