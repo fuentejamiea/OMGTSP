@@ -52,7 +52,6 @@ class MyModel:
             B[:, leaving] = self.A[:, entering]
             self.A[:, entering] = hold
             entering = np.argmin(d_n)
-            print(d_n)
             iter += 1
 
         print(B@x_b)
